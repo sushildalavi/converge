@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion, LayoutGroup } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { BrowserRouter, NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster } from "sonner";
-import { LayoutDashboard, Server, Skull, Zap } from "lucide-react";
+import { BarChart2, AlertTriangle, Server, Zap } from "lucide-react";
 import Dashboard      from "./pages/Dashboard";
 import WorkflowDetail from "./pages/WorkflowDetail";
 import DeadLetters    from "./pages/DeadLetters";
@@ -12,46 +12,10 @@ import { Header }         from "./components/Header";
 import { CommandPalette } from "./components/CommandPalette";
 
 const NAV = [
-  { to:"/",            label:"Dashboard",   icon:LayoutDashboard, end:true },
-  { to:"/deadletters", label:"Dead Letters", icon:Skull            },
-  { to:"/workers",     label:"Workers",      icon:Server           },
+  { to:"/",            label:"Overview",     icon:BarChart2,    end:true },
+  { to:"/deadletters", label:"Dead Letters",  icon:AlertTriangle },
+  { to:"/workers",     label:"Workers",       icon:Server        },
 ];
-
-/* animation #19 — sidebar active pill with layoutId */
-function NavItems() {
-  const loc = useLocation();
-  return (
-    <LayoutGroup>
-      <nav className="flex-1 px-3 overflow-y-auto" style={{ scrollbarWidth:"none", paddingTop:6 }}>
-        <p style={{ color:"#1e293b", fontSize:9, fontWeight:700, textTransform:"uppercase",
-          letterSpacing:".14em", padding:"0 6px 8px" }}>Platform</p>
-        {NAV.map(({ to, label, icon:Icon, end }) => (
-          <NavLink key={to} to={to} end={end}
-            className={({ isActive }) => "nav-item" + (isActive ? " active" : "")}
-            style={{ marginBottom:2 }}>
-            {({ isActive }) => (
-              <>
-                {isActive && (
-                  <motion.span layoutId="sidebar-pill" className="absolute inset-0 rounded-md"
-                    style={{ background:"rgba(99,102,241,.12)" }}
-                    transition={{ duration:.22, ease:[0.21,0.47,0.32,0.98] }} />
-                )}
-                {isActive && (
-                  <span style={{ position:"absolute", left:0, top:"50%", transform:"translateY(-50%)",
-                    width:2, height:14, background:"#6366f1", borderRadius:1 }} />
-                )}
-                <span className="relative z-10 flex items-center gap-2 w-full">
-                  <Icon size={13} strokeWidth={1.75} />
-                  <span>{label}</span>
-                </span>
-              </>
-            )}
-          </NavLink>
-        ))}
-      </nav>
-    </LayoutGroup>
-  );
-}
 
 function Inner() {
   const loc = useLocation();
@@ -59,62 +23,66 @@ function Inner() {
 
   useEffect(()=>{
     const h = (e:KeyboardEvent) => {
-      if((e.metaKey||e.ctrlKey) && e.key==="k"){ e.preventDefault(); setCmd(o=>!o) }
+      if((e.metaKey||e.ctrlKey)&&e.key==="k"){ e.preventDefault(); setCmd(o=>!o) }
     };
     window.addEventListener("keydown",h);
     return ()=>window.removeEventListener("keydown",h);
-  }, []);
+  },[]);
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background:"var(--bg)" }}>
+    <div style={{ display:"flex", height:"100vh", background:"var(--bg)" }}>
       <CommandPalette open={cmd} onClose={()=>setCmd(false)} />
 
       {/* sidebar */}
-      <aside className="sidebar shrink-0 z-20">
+      <aside className="sidebar">
         {/* logo */}
-        <div className="flex items-center gap-2.5 px-4 py-4 shrink-0"
-          style={{ borderBottom:"1px solid var(--border)" }}>
-          <div className="w-6 h-6 rounded flex items-center justify-center shrink-0"
-            style={{ background:"linear-gradient(135deg,#4f46e5,#7c3aed)",
-              boxShadow:"0 0 16px rgba(99,102,241,.35)" }}>
-            <Zap size={12} color="#fff" />
-          </div>
-          <div>
-            <p style={{ color:"#fff", fontSize:13, fontWeight:600, lineHeight:1.2, letterSpacing:"-.01em" }}>
-              ReplayForge
-            </p>
-            <p style={{ color:"#1e293b", fontSize:10, marginTop:1 }}>Workflow Debugger</p>
-          </div>
-        </div>
-
-        {/* live indicator — animation #12 */}
-        <div className="px-4 py-3 shrink-0">
-          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md"
-            style={{ background:"rgba(16,185,129,.05)", border:"1px solid rgba(16,185,129,.1)" }}>
-            <span className="live-ring"><span className="live-dot" /></span>
-            <span style={{ color:"#34d399", fontSize:10, fontWeight:700, letterSpacing:".1em" }}>LIVE</span>
+        <div style={{ padding:"16px 14px 12px", borderBottom:"1px solid var(--border)" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <div style={{
+              width:24, height:24, borderRadius:5,
+              background:"var(--accent)", display:"flex",
+              alignItems:"center", justifyContent:"center", flexShrink:0,
+            }}>
+              <Zap size={13} color="#000" strokeWidth={2.5} />
+            </div>
+            <div>
+              <p style={{ fontSize:13, fontWeight:600, color:"var(--text)", letterSpacing:"-.01em" }}>
+                ReplayForge
+              </p>
+            </div>
           </div>
         </div>
 
-        <NavItems />
+        {/* nav */}
+        <nav style={{ flex:1, padding:"10px 8px", overflowY:"auto", scrollbarWidth:"none" }}>
+          <p className="section-label" style={{ paddingLeft:6 }}>Navigation</p>
+          {NAV.map(({to,label,icon:Icon,end})=>(
+            <NavLink key={to} to={to} end={end}
+              className={({isActive})=>"nav-link"+(isActive?" active":"")}>
+              <Icon size={13} strokeWidth={1.75} />
+              <span>{label}</span>
+            </NavLink>
+          ))}
+        </nav>
 
-        {/* cmd-k button */}
-        <div className="p-3 shrink-0" style={{ borderTop:"1px solid var(--border)" }}>
-          <motion.button onClick={()=>setCmd(true)}
-            className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-md"
-            style={{ background:"rgba(255,255,255,.03)", border:"1px solid var(--border)", cursor:"pointer" }}
-            whileHover={{ background:"rgba(255,255,255,.06)" }}
-            whileTap={{ scale:.97 }}>
-            <span style={{ color:"#334155", fontSize:11 }}>Quick search</span>
-            <span className="flex gap-0.5"><kbd className="kbd">⌘</kbd><kbd className="kbd">K</kbd></span>
-          </motion.button>
+        {/* search shortcut */}
+        <div style={{ padding:"8px", borderTop:"1px solid var(--border)" }}>
+          <button onClick={()=>setCmd(true)}
+            style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between",
+              padding:"6px 8px", borderRadius:5, background:"var(--raised)",
+              border:"1px solid var(--border)", cursor:"pointer", fontSize:11, color:"var(--dim)" }}>
+            <span>Search</span>
+            <span style={{ display:"flex", gap:2 }}>
+              <kbd className="kbd">⌘</kbd><kbd className="kbd">K</kbd>
+            </span>
+          </button>
         </div>
       </aside>
 
       {/* main */}
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+      <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden", minWidth:0 }}>
         <Header onCmdK={()=>setCmd(true)} />
-        <main className="flex-1 overflow-y-auto">
+        <main style={{ flex:1, overflowY:"auto" }}>
           <AnimatePresence mode="wait">
             <Routes location={loc} key={loc.pathname}>
               <Route path="/"                element={<PageTransition><Dashboard /></PageTransition>} />
@@ -133,8 +101,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <Toaster position="bottom-right" toastOptions={{
-        style:{ background:"#0c1220", border:"1px solid rgba(255,255,255,.1)",
-          color:"#e2e8f0", fontSize:13, borderRadius:8, boxShadow:"0 16px 32px rgba(0,0,0,.6)" },
+        style:{ background:"var(--card)", border:"1px solid var(--border2)",
+          color:"var(--text)", fontSize:13, borderRadius:6 },
       }} />
       <Inner />
     </BrowserRouter>

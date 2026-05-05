@@ -1,84 +1,64 @@
 import { useCallback } from "react";
-import { useLocation } from "react-router-dom";
-import { CheckCircle, AlertTriangle, XCircle, Search } from "lucide-react";
+import { useLocation, Link } from "react-router-dom";
+import { Search } from "lucide-react";
 import { usePolling } from "../hooks/usePolling";
 import { api } from "../api/client";
 import { AnimatedNumber } from "./Animated";
 
 const CRUMBS: Record<string,string> = {
-  "/":"Dashboard", "/deadletters":"Dead Letters", "/workers":"Workers",
-};
-type Health = "healthy"|"degraded"|"critical";
-const HC: Record<Health,{ label:string; color:string; bg:string; border:string }> = {
-  healthy:  { label:"Operational",   color:"#10b981", bg:"rgba(16,185,129,.08)", border:"rgba(16,185,129,.2)" },
-  degraded: { label:"Degraded",      color:"#f97316", bg:"rgba(249,115,22,.08)", border:"rgba(249,115,22,.2)" },
-  critical: { label:"Critical",      color:"#f43f5e", bg:"rgba(244,63,94,.08)",  border:"rgba(244,63,94,.2)"  },
+  "/":"Overview", "/deadletters":"Dead Letters", "/workers":"Workers",
 };
 
 export function Header({ onCmdK }: { onCmdK: () => void }) {
   const loc   = useLocation();
-  const crumb = CRUMBS[loc.pathname] ?? "Workflow Detail";
+  const crumb = CRUMBS[loc.pathname] ?? "Workflow";
   const mLoad = useCallback(() => api.getMetrics(), []);
   const { data: m } = usePolling(mLoad, 8000);
 
-  const health: Health = !m ? "healthy"
+  const health = !m ? null
     : m.active_workers === 0 && m.total_events > 0 ? "critical"
     : m.stale_workers > 0 || m.dead_lettered > 0 ? "degraded"
     : "healthy";
-  const h = HC[health];
 
   return (
-    <header className="flex items-center justify-between px-5 shrink-0"
-      style={{ height:"var(--header-h)", borderBottom:"1px solid var(--border)",
-        background:"rgba(3,7,18,.92)", backdropFilter:"blur(12px)", zIndex:10 }}>
+    <div className="main-header">
       {/* breadcrumb */}
-      <div className="flex items-center gap-2" style={{ fontSize:12 }}>
-        <span style={{ color:"#2d3748", fontWeight:500 }}>ReplayForge</span>
-        <span style={{ color:"#1e293b" }}>/</span>
-        <span style={{ color:"#94a3b8", fontWeight:500 }}>{crumb}</span>
+      <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:12, color:"var(--dim)", flex:1 }}>
+        <span>ReplayForge</span>
+        <span style={{ color:"var(--dimmer)" }}>/</span>
+        <span style={{ color:"var(--muted)", fontWeight:500 }}>{crumb}</span>
       </div>
 
-      <div className="flex items-center gap-2.5">
-        {/* animation #36 — health badge with pulsing dot */}
-        {m && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md"
-            style={{ background:h.bg, border:`1px solid ${h.border}`, fontSize:11, color:h.color, fontWeight:600 }}>
-            <span className="relative flex shrink-0" style={{ width:6, height:6 }}>
-              {health === "healthy" && (
-                <span className="absolute inset-0 rounded-full animate-ping"
-                  style={{ background:h.color, opacity:.5 }} />
-              )}
-              <span className="relative rounded-full" style={{ width:6, height:6, background:h.color }} />
-            </span>
-            {h.label}
-          </div>
-        )}
-
-        {/* quick stats */}
-        {m && (
-          <div className="flex items-center gap-3 mono" style={{ fontSize:11, color:"#334155" }}>
-            <span><span style={{ color:"#64748b" }}>{m.active_workers}</span> workers</span>
-            <span style={{ color:"#1e293b" }}>·</span>
-            <span>
-              <span style={{ color:"#6366f1" }}><AnimatedNumber value={m.total_events} /></span> events
-            </span>
-          </div>
-        )}
-
-        {/* search button */}
-        <button onClick={onCmdK}
-          className="flex items-center gap-2 px-2.5 py-1 rounded-md"
-          style={{ background:"rgba(255,255,255,.04)", border:"1px solid var(--border)",
-            fontSize:11, color:"#475569", cursor:"pointer" }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,.07)" }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,.04)" }}>
-          <Search size={11} />
-          <span>Search</span>
-          <span className="flex gap-0.5 ml-0.5">
-            <kbd className="kbd">⌘</kbd><kbd className="kbd">K</kbd>
+      {/* center status */}
+      {health && (
+        <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:11 }}>
+          <span className="dot" style={{
+            background: health==="healthy"?"var(--green)":health==="degraded"?"var(--orange)":"var(--red)",
+            width:6, height:6,
+          }} />
+          <span style={{ color:"var(--dim)" }}>
+            {health==="healthy"?"Operational":health==="degraded"?"Degraded":"Critical"}
           </span>
-        </button>
-      </div>
-    </header>
+          {m && (
+            <span className="mono" style={{ color:"var(--dimmer)", marginLeft:8 }}>
+              <span style={{ color:"var(--muted)" }}><AnimatedNumber value={m.total_events} /></span> events
+              {" · "}
+              <span style={{ color:m.active_workers>0?"var(--green)":"var(--red)" }}>{m.active_workers}</span> workers
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* search */}
+      <button onClick={onCmdK}
+        className="btn-outline"
+        style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:6 }}>
+        <Search size={11} />
+        <span>Search</span>
+        <span style={{ display:"flex", gap:2, marginLeft:4 }}>
+          <kbd className="kbd">⌘</kbd><kbd className="kbd">K</kbd>
+        </span>
+      </button>
+    </div>
   );
 }
