@@ -70,9 +70,13 @@ services:
       context: ./backend
       target: runtime
     command: ["python", "-m", "app.workers.worker"]
-    restart: unless-stopped
+    # `restart: always` survives Docker daemon restarts AND simulated worker crashes.
+    # `unless-stopped` would also work but `always` is simpler for a demo.
+    restart: always
     env_file: backend/.env
-    # WORKER_NAME left empty in .env so each replica auto-derives a unique name from its hostname
+    # WORKER_NAME left empty in .env so each replica auto-derives a unique name from its hostname.
+    # To run multiple workers locally:
+    #   docker compose up -d --scale worker=3
     depends_on:
       postgres:
         condition: service_healthy
@@ -81,16 +85,11 @@ services:
       backend:
         condition: service_started
     deploy:
-      replicas: 3      # ← horizontally scaled out of the box
+      replicas: 3      # honored by Docker Compose v2.20+; for older versions use --scale worker=3
       resources:
         limits:
           memory: 384M
           cpus: "0.5"
-      restart_policy:
-        condition: on-failure
-        delay: 2s
-        max_attempts: 10
-        window: 60s
 
   frontend:
     build:

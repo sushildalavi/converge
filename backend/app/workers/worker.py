@@ -124,6 +124,15 @@ def _reclaim_orphans(consumer_name: str, streams: list[str]) -> None:
             log.debug("xautoclaim noop on %s (stream may be empty)", stream)
 
 
+def _gc_stale_workers(db: Session) -> int:
+    """Delete workers that haven't heartbeat in >5 minutes (gone for good)."""
+    from sqlalchemy import delete
+    cutoff = _now() - timedelta(minutes=5)
+    res = db.execute(delete(Worker).where(Worker.last_heartbeat_at < cutoff))
+    db.commit()
+    return res.rowcount or 0
+
+
 def run() -> None:
     setup_logging()
     import socket
@@ -134,8 +143,11 @@ def run() -> None:
     ensure_consumer_group(STREAM_RETRY)
 
     db = SessionLocal()
+    gc_count = _gc_stale_workers(db)
+    if gc_count:
+        log.info("garbage-collected stale workers", extra={"count": gc_count})
     worker = _register_worker(db, worker_name)
-    log.info("worker registered", extra={"worker_id": str(worker.id), "name": worker_name})
+    log.info("worker registered", extra={"worker_id": str(worker.id), "worker_label": worker_name})
 
     heartbeat = HeartbeatThread(worker.id, SessionLocal, interval=settings.worker_heartbeat_interval)
     heartbeat.start()
@@ -203,18 +215,12 @@ def run() -> None:
                         _handle_success(db, event, worker, attempt_num, started_at)
                         r.xack(stream_name, GROUP, msg_id)
                     except WorkerCrashError as exc:
-                        log.error("crash simulated", extra={"event_id": str(event.id)})
-                        try:
-                            _handle_failure(db, event, worker, attempt_num, started_at, exc)
-                            r.xack(stream_name, GROUP, msg_id)
-                        except Exception:
-                            log.exception("could not record crash attempt")
-                        db.execute(update(Worker).where(Worker.id == worker.id).values(status="crashed"))
-                        db.commit()
-                        db.close()
-                        heartbeat.stop()
-                        scheduler.stop()
-                        sys.exit(1)
+                        # Record as failure but don't exit the worker — production-grade
+                        # workers should not crash-loop themselves on simulated faults.
+                        # XAUTOCLAIM still recovers PEL entries from genuinely-crashed workers.
+                        log.error("crash simulated (recovered)", extra={"event_id": str(event.id)})
+                        _handle_failure(db, event, worker, attempt_num, started_at, exc)
+                        r.xack(stream_name, GROUP, msg_id)
                     except Exception as exc:
                         _handle_failure(db, event, worker, attempt_num, started_at, exc)
                         r.xack(stream_name, GROUP, msg_id)

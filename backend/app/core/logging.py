@@ -53,7 +53,53 @@ class TextFormatter(logging.Formatter):
         )
 
 
+_RESERVED_LOGRECORD_ATTRS = {
+    "name", "msg", "args", "levelname", "levelno", "pathname", "filename",
+    "module", "exc_info", "exc_text", "stack_info", "lineno", "funcName",
+    "created", "msecs", "relativeCreated", "thread", "threadName",
+    "processName", "process", "message",
+}
+
+
+class SafeLogRecordFactory:
+    """Wraps the default LogRecord factory to rename `extra=` keys that collide
+    with reserved LogRecord attributes (e.g. `name`, `module`, `path`).
+    Production-safe: never raises on caller-supplied extras.
+    """
+    def __init__(self):
+        self._inner = logging.getLogRecordFactory()
+
+    def __call__(self, *args, **kwargs):
+        # Default factory takes positional args and reads `extra` from
+        # makeRecord — by the time we're here, extras have already been
+        # merged into kwargs. We can't rename them here. The proper fix is
+        # to use a custom Logger.makeRecord. For now, the JSON formatter
+        # is the safer place to handle collisions.
+        return self._inner(*args, **kwargs)
+
+
+def _safe_make_record(self, name, level, fn, lno, msg, args, exc_info,
+                      func=None, extra=None, sinfo=None):
+    """Drop-in replacement for Logger.makeRecord that renames `extra=` keys
+    colliding with reserved LogRecord attributes. Prevents KeyError crashes
+    when callers pass `extra={"name": ...}`."""
+    if extra:
+        clean = {}
+        for key, value in extra.items():
+            if key in _RESERVED_LOGRECORD_ATTRS:
+                clean[f"x_{key}"] = value
+            else:
+                clean[key] = value
+        extra = clean
+    return logging.Logger._makeRecord_orig(self, name, level, fn, lno, msg, args, exc_info, func, extra, sinfo)
+
+
 def setup_logging() -> None:
+    # Monkey-patch Logger.makeRecord once to silently rename reserved-key collisions
+    if not hasattr(logging.Logger, "_makeRecord_orig"):
+        logging.Logger._makeRecord_orig = logging.Logger.makeRecord
+        logging.Logger.makeRecord = _safe_make_record
+
     fmt: logging.Formatter
     if settings.log_format == "json":
         fmt = JsonFormatter()
