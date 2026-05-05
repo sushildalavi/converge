@@ -40,3 +40,4 @@ def health() -> dict[str, str]:
 
 from app.api import routes_events  # noqa: E402
 app.include_router(routes_events.router)
+app.include_router(routes_events.demo_router)

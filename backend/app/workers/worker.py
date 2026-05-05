@@ -58,8 +58,22 @@ def _register_worker(db: Session, worker_name: str) -> Worker:
 
 
 def process_event_stub(event: Event) -> None:
-    """Stub handler — always succeeds. Will be replaced by real simulator."""
-    time.sleep(0.05)
+    """Simulate event processing with realistic failure rates."""
+    from app.demo.checkout_simulator import should_crash, should_fail_event
+
+    event_id = str(event.id)
+    attempt = event.attempt_count
+
+    if event.payload_json.get("_force_fail"):
+        raise SimulatedFailure("forced failure via _force_fail flag")
+
+    if should_crash(event_id, attempt):
+        raise WorkerCrashError("simulated worker crash")
+
+    if should_fail_event(event_id, event.event_type, attempt):
+        raise SimulatedFailure(f"{event.event_type} failed (simulated)")
+
+    time.sleep(0.05 + (hash(event_id) % 100) * 0.002)
 
 
 def _handle_success(db: Session, event: Event, worker: Worker, attempt_num: int, started_at: datetime) -> None:
