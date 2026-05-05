@@ -40,6 +40,14 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173"
     request_timeout_seconds: int = 30
 
+    # ── security ─────────────────────────────────────────
+    # Comma-separated list of allowed API keys for write endpoints
+    # (empty in dev = unauthenticated; required in production)
+    api_keys: str = ""
+    rate_limit_write_per_min: int = 60
+    rate_limit_read_per_min: int = 600
+    max_request_body_bytes: int = 262144  # 256 KB
+
     # ── observability ────────────────────────────────────
     log_level: str = "INFO"
     log_format: str = "json"  # "json" or "text"
@@ -62,6 +70,14 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.environment.lower() == "production"
+
+    @property
+    def api_keys_list(self) -> list[str]:
+        return [k.strip() for k in self.api_keys.split(",") if k.strip()]
+
+    @property
+    def api_keys_set(self) -> bool:
+        return len(self.api_keys_list) > 0
 
 
 @lru_cache

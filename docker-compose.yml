@@ -71,9 +71,12 @@ services:
       target: runtime
     command: ["python", "-m", "app.workers.worker"]
     # `restart: always` survives Docker daemon restarts AND simulated worker crashes.
-    # `unless-stopped` would also work but `always` is simpler for a demo.
     restart: always
     env_file: backend/.env
+    healthcheck:
+      # Worker doesn't run an HTTP server — health is reported via the workers table.
+      # Disable the inherited healthcheck so compose doesn't report "unhealthy".
+      disable: true
     # WORKER_NAME left empty in .env so each replica auto-derives a unique name from its hostname.
     # To run multiple workers locally:
     #   docker compose up -d --scale worker=3

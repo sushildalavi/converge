@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.core.idempotency import get_or_create_event
 from app.core.redis_streams import publish_incoming
+from app.core.security import require_api_key
 from app.database import get_db
 from app.models import Event
 from app.schemas import EventCreate, EventOut
@@ -20,10 +21,11 @@ demo_router = APIRouter(tags=["demo"])
 log = logging.getLogger(__name__)
 
 DbDep = Annotated[Session, Depends(get_db)]
+RequireKey = Annotated[None, Depends(require_api_key)]
 
 
 @router.post("/api/events", status_code=201)
-def ingest_event(payload: EventCreate, db: DbDep) -> EventOut:
+def ingest_event(payload: EventCreate, db: DbDep, _auth: RequireKey = None) -> EventOut:
     event, duplicate = get_or_create_event(db, payload)
     if not duplicate:
         event.status = "queued"
@@ -73,7 +75,10 @@ def get_event(event_id: UUID, db: DbDep) -> EventOut:
 
 
 @demo_router.post("/api/demo/generate-workload")
-def generate_workload(count: int = Query(default=10, ge=1, le=500)) -> dict:
+def generate_workload(
+    count: int = Query(default=10, ge=1, le=500),
+    _auth: RequireKey = None,
+) -> dict:
     from app.demo.workload_generator import generate_workload as _gen
     result = _gen(n=count, base_url="http://localhost:8000")
     return result

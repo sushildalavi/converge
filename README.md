@@ -432,6 +432,120 @@ docker compose logs -f worker | grep '"event succeeded"'
 | **Idempotent migrations** | `alembic upgrade head` runs at backend start (no-op if up to date) |
 | **CI on every PR** | GitHub Actions: pytest with real Postgres + Redis services, frontend typecheck + build, Docker build smoke |
 
+---
+
+## Security — three defense layers
+
+| Layer | Mechanism | Implementation |
+|-------|-----------|---------------|
+| **Layer 1 — Authentication** | API key on write endpoints | `X-API-Key` header required for `POST /api/events`, `POST /api/deadletters/{id}/replay`, and demo workload generation in `production` mode. Constant-time hash comparison (`hmac.compare_digest`). Multi-key support via `API_KEYS` env (comma-separated). Disabled in `development` for local convenience. |
+| **Layer 2 — Rate limiting** | Per-IP sliding window via Redis | Sorted-set sliding window in Redis (`ZREMRANGEBYSCORE` + `ZADD`) with separate limits for read (600/min) and write (60/min) endpoints. Returns `429` with `Retry-After` and `X-RateLimit-*` headers. Health/docs endpoints exempt. |
+| **Layer 3 — Hardening** | Security headers + payload caps | OWASP-recommended response headers on every response: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy: geolocation=(),microphone=(),camera=()`, `Strict-Transport-Security` in production. Request bodies capped at 256 KB (`413` on overflow). Strict Pydantic validation on all inputs. |
+
+```bash
+# Verify security headers
+curl -sI localhost:8000/api/metrics | grep -iE "ratelimit|frame|content-type-options"
+
+# Verify rate limiting (after 60 writes/min)
+for i in {1..70}; do curl -X POST localhost:8000/api/events -d '{}' -s -o /dev/null -w "%{http_code}\n"; done | tail -5
+```
+
+---
+
+## AI insight layers
+
+Three AI-powered analysis endpoints. **Layers 1 and 2 are fully deterministic** (statistical analysis, no API calls — work without an API key). **Layer 3 uses Claude when `ANTHROPIC_API_KEY` is set**, otherwise falls back to a deterministic root-cause classifier.
+
+### Layer 1 — Anomaly Detection — `GET /api/ai/anomalies`
+
+Statistical detection of unusual patterns in event flow:
+- **Error rate spike** — current fail rate >2× baseline
+- **Latency degradation** — p95 latency >2× rolling p95
+- **Throughput drop** — current rate <50% of baseline
+- **Service outliers** — one service with >3× DLQ rate vs fleet average
+
+```bash
+curl 'localhost:8000/api/ai/anomalies?lookback_minutes=30' | jq
+```
+
+```json
+{
+  "anomalies": [
+    {
+      "type": "error_rate_spike",
+      "severity": "high",
+      "message": "Error rate jumped from 1.2% to 8.4%",
+      "baseline": 0.012,
+      "current":  0.084
+    }
+  ],
+  "anomaly_count": 1,
+  "status": "anomaly"
+}
+```
+
+### Layer 2 — Smart Retry Policy Recommender — `GET /api/ai/retry-recommendations`
+
+Per-event-type retry policy suggestions based on observed behavior:
+- **`reduce_attempts`** — failures are rare, current 4 attempts is wasteful
+- **`increase_backoff`** — high DLQ rate suggests downstream is slow to recover
+- **`investigate_root_cause`** — most events need many retries, fix flakiness instead
+- **`keep_current`** — well-tuned for this event type
+
+```bash
+curl localhost:8000/api/ai/retry-recommendations | jq '.[0]'
+```
+
+```json
+{
+  "event_type": "email.receipt_sent",
+  "total": 4080,
+  "success_rate": 0.792,
+  "dead_letter_rate": 0.002,
+  "avg_attempts": 0.26,
+  "recommendation": "reduce_attempts",
+  "suggested_max_attempts": 2,
+  "rationale": "Failures are rare and most events succeed on first attempt — reducing max_attempts saves DB load."
+}
+```
+
+### Layer 3 — Root Cause Analysis — `GET /api/ai/root-cause/{workflow_id}`
+
+For a specific failing workflow:
+1. Identifies the primary (first) failure
+2. Classifies error category (timeout, crash, connectivity, auth, missing resource, simulated)
+3. Finds similar past workflows with same `event_type` + similar error pattern
+4. Computes recovery rate of similar workflows
+5. **If `ANTHROPIC_API_KEY` set**, sends compact prompt to Claude Haiku for senior-engineer-quality summary; otherwise template fallback
+
+```bash
+WF=$(curl -s localhost:8000/api/workflows | jq -r '.[0].workflow_id')
+curl localhost:8000/api/ai/root-cause/$WF | jq
+```
+
+```json
+{
+  "primary_failure": {
+    "event_type": "payment.authorized",
+    "service":    "payment-service",
+    "status":     "dead_lettered",
+    "attempts":   4,
+    "error":      "simulated worker crash"
+  },
+  "category":     "process_crash",
+  "likely_cause": "Worker process died mid-execution. Check OOM, deploy events, or simulated crash injections.",
+  "ai_summary":   "Payment service crashed during the auth step…",  // when ANTHROPIC_API_KEY is set
+  "similar_failures": {
+    "count": 20,
+    "recovered": 20,
+    "recovery_rate": 1.0,
+    "top_error_patterns": [
+      { "error": "payment.authorized failed (simulated)", "count": 17 }
+    ]
+  }
+}
+```
+
 ### Scaling workers
 
 The worker service in `docker-compose.yml` runs 3 replicas by default. Bump it:

@@ -44,13 +44,25 @@ app = FastAPI(
 )
 
 
-# ── middleware ─────────────────────────────────────────────
+# ── middleware (order matters: outermost listed last) ─────
+from app.core.security import (  # noqa: E402
+    SecurityHeadersMiddleware, RateLimitMiddleware, MaxBodySizeMiddleware,
+)
+
+app.add_middleware(SecurityHeadersMiddleware)              # Layer 3: security headers
+app.add_middleware(
+    RateLimitMiddleware,                                    # Layer 2: per-IP rate limit
+    write_limit=settings.rate_limit_write_per_min,
+    read_limit=settings.rate_limit_read_per_min,
+)
+app.add_middleware(MaxBodySizeMiddleware, max_body_bytes=settings.max_request_body_bytes)  # Layer 3: payload cap
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["*", "X-API-Key", "X-Request-ID"],
+    expose_headers=["X-Request-ID", "X-Response-Time-Ms", "X-RateLimit-Remaining"],
 )
 
 
@@ -113,7 +125,7 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
 from app.api import (  # noqa: E402
     routes_events, routes_workflows, routes_workers,
     routes_metrics, routes_deadletters, routes_incidents,
-    routes_insights, routes_health,
+    routes_insights, routes_health, routes_ai,
 )
 app.include_router(routes_health.router)
 app.include_router(routes_events.router)
@@ -124,3 +136,4 @@ app.include_router(routes_metrics.router)
 app.include_router(routes_deadletters.router)
 app.include_router(routes_incidents.router)
 app.include_router(routes_insights.router)
+app.include_router(routes_ai.router)

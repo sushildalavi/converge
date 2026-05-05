@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
 from app.core.replay import replay_dead_letter
+from app.core.security import require_api_key
 from app.database import get_db
 from app.models import DeadLetter, Event
 from app.schemas import DeadLetterOut, EventOut
@@ -45,7 +46,7 @@ def list_deadletters(db: DbDep, limit: int = 50, offset: int = 0) -> list[DeadLe
     return result
 
 
-@router.post("/api/deadletters/{deadletter_id}/replay")
+@router.post("/api/deadletters/{deadletter_id}/replay", dependencies=[Depends(require_api_key)])
 def replay_deadletter(deadletter_id: UUID, db: DbDep) -> EventOut:
     event = replay_dead_letter(db, deadletter_id)
     from sqlalchemy.orm import selectinload
