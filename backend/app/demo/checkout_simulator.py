@@ -20,7 +20,7 @@ FAIL_RATES: dict[str, float] = {
     "email.receipt_sent": 0.25,
 }
 
-CRASH_RATE = 0.05
+CRASH_RATE = 0.01  # lowered for stable demo; raise to 0.05 to simulate crashes
 
 
 def simulate_checkout_events(workflow_id: str | None = None) -> list[EventCreate]:
