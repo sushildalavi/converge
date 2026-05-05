@@ -1,98 +1,79 @@
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { useLocation } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { Command, Search, Zap, CheckCircle, AlertTriangle, XCircle } from "lucide-react";
+import { CheckCircle, AlertTriangle, XCircle, Search } from "lucide-react";
 import { usePolling } from "../hooks/usePolling";
 import { api } from "../api/client";
 
-type SystemHealth = "healthy" | "degraded" | "critical";
-
-function getHealth(active: number, stale: number, dead: number): SystemHealth {
-  if (dead > 0 && active === 0) return "critical";
-  if (stale > 0 || dead > 0) return "degraded";
-  return "healthy";
-}
-
-const HEALTH_CFG = {
-  healthy:  { label: "All systems operational", color: "#10b981", icon: CheckCircle,  dot: "bg-emerald-500" },
-  degraded: { label: "Degraded performance",    color: "#f97316", icon: AlertTriangle, dot: "bg-orange-500" },
-  critical: { label: "System critical",          color: "#f43f5e", icon: XCircle,       dot: "bg-rose-500" },
+const CRUMBS: Record<string, string> = {
+  "/": "Dashboard",
+  "/deadletters": "Dead Letters",
+  "/workers": "Workers",
 };
 
-const CRUMBS: Record<string, string> = {
-  "/":            "Overview",
-  "/deadletters": "Dead Letters",
-  "/workers":     "Workers",
+type Health = "healthy" | "degraded" | "critical";
+
+const HCfg: Record<Health, { label: string; color: string; Icon: typeof CheckCircle; dot: string }> = {
+  healthy:  { label: "Operational",       color: "#10b981", Icon: CheckCircle,  dot: "#10b981" },
+  degraded: { label: "Degraded",          color: "#f97316", Icon: AlertTriangle, dot: "#f97316" },
+  critical: { label: "System Critical",   color: "#f43f5e", Icon: XCircle,       dot: "#f43f5e" },
 };
 
 export function Header({ onCmdK }: { onCmdK: () => void }) {
   const loc = useLocation();
-  const crumb = CRUMBS[loc.pathname] ?? loc.pathname.split("/").pop() ?? "…";
-
+  const crumb = CRUMBS[loc.pathname] ?? "Workflow Detail";
   const mLoader = useCallback(() => api.getMetrics(), []);
-  const { data: m } = usePolling(mLoader, 6000);
+  const { data: m } = usePolling(mLoader, 8000);
 
-  const health: SystemHealth = m
-    ? getHealth(m.active_workers, m.stale_workers, m.dead_lettered)
+  const health: Health = !m ? "healthy"
+    : m.active_workers === 0 && m.total_events > 0 ? "critical"
+    : m.stale_workers > 0 || m.dead_lettered > 0 ? "degraded"
     : "healthy";
-  const hcfg = HEALTH_CFG[health];
-  const HealthIcon = hcfg.icon;
+  const h = HCfg[health];
 
   return (
     <header
-      className="sticky top-0 z-20 flex items-center justify-between px-5 h-11"
-      style={{ background: "rgba(5,9,18,0.85)", borderBottom: "1px solid rgba(255,255,255,0.05)", backdropFilter: "blur(12px)" }}
+      className="flex items-center justify-between px-5 shrink-0"
+      style={{ height: 42, borderBottom: "1px solid var(--border)", background: "rgba(8,12,20,.9)", backdropFilter: "blur(8px)" }}
     >
       {/* breadcrumb */}
-      <div className="flex items-center gap-2 text-[12px]">
-        <Zap size={11} style={{ color: "#6366f1" }} />
+      <div className="flex items-center gap-2" style={{ fontSize: 12 }}>
         <span style={{ color: "#334155" }}>ReplayForge</span>
-        <span style={{ color: "#1e2d3d" }}>/</span>
-        <span className="text-white font-medium">{crumb}</span>
+        <span style={{ color: "#1e293b" }}>/</span>
+        <span style={{ color: "#94a3b8", fontWeight: 500 }}>{crumb}</span>
       </div>
 
-      {/* right side */}
       <div className="flex items-center gap-3">
-        {/* system health */}
+        {/* health */}
         {m && (
-          <motion.div
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md cursor-default"
-            style={{ background: `${hcfg.color}0f`, border: `1px solid ${hcfg.color}25` }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+          <div
+            className="flex items-center gap-1.5 px-2 py-1 rounded-md"
+            style={{ background: `${h.color}10`, border: `1px solid ${h.color}25`, fontSize: 11, color: h.color, fontWeight: 600 }}
           >
-            <span className={`relative flex h-1.5 w-1.5`}>
-              {health === "healthy" && (
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${hcfg.dot} opacity-60`} />
-              )}
-              <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${hcfg.dot}`} />
+            <span className="relative w-1.5 h-1.5 flex shrink-0">
+              {health === "healthy" && <span className="live-ring absolute inset-0 rounded-full" style={{ background: h.dot }} />}
+              <span className="relative rounded-full w-1.5 h-1.5" style={{ background: h.dot }} />
             </span>
-            <span className="text-[11px] font-medium" style={{ color: hcfg.color }}>{hcfg.label}</span>
-          </motion.div>
+            {h.label}
+          </div>
         )}
 
         {/* quick stats */}
         {m && (
-          <div className="flex items-center gap-3 text-[11px] mono" style={{ color: "#334155" }}>
-            <span><span className="text-emerald-400">{m.active_workers}</span> workers</span>
-            <span><span className="text-indigo-400">{m.total_events.toLocaleString()}</span> events</span>
+          <div className="flex items-center gap-3 mono" style={{ fontSize: 11, color: "#334155" }}>
+            <span><span style={{ color: "#64748b" }}>{m.active_workers}</span> workers</span>
+            <span><span style={{ color: "#6366f1" }}>{m.total_events.toLocaleString()}</span> events</span>
           </div>
         )}
 
-        {/* search button */}
+        {/* search */}
         <button
           onClick={onCmdK}
-          className="flex items-center gap-2 px-2.5 py-1 rounded-md text-[12px] transition-colors"
-          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", color: "#475569" }}
-          onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; e.currentTarget.style.color = "#94a3b8"; }}
-          onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = "#475569"; }}
+          className="flex items-center gap-2 px-2.5 py-1 rounded-md"
+          style={{ background: "rgba(255,255,255,.04)", border: "1px solid var(--border)", fontSize: 11, color: "#475569", cursor: "pointer" }}
         >
           <Search size={11} />
           <span>Search</span>
-          <div className="flex items-center gap-0.5 ml-1">
-            <span className="kbd">⌘</span>
-            <span className="kbd">K</span>
-          </div>
+          <span className="flex gap-0.5 ml-1"><kbd className="kbd">⌘</kbd><kbd className="kbd">K</kbd></span>
         </button>
       </div>
     </header>

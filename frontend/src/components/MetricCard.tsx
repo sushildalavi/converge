@@ -1,95 +1,93 @@
 import { motion } from "framer-motion";
 import type { LucideIcon } from "lucide-react";
-import { Skeleton, AnimatedNumber } from "./Animated";
+import { AnimatedNumber, Skeleton } from "./Animated";
 
-interface Props {
-  title: string;
-  value: number | string | null;
-  sub?: string;
-  icon?: LucideIcon;
-  trend?: string;
-  trendDir?: "up" | "down" | "flat";
-  accent?: "indigo" | "emerald" | "rose" | "orange" | "amber" | "purple" | "sky";
-  sparkData?: number[];
-}
-
-const accentCfg: Record<string, { border: string; iconBg: string; iconText: string; glow: string; sparkStroke: string }> = {
-  indigo:  { border: "rgba(99,102,241,0.18)",  iconBg: "rgba(99,102,241,0.1)",  iconText: "#818cf8", glow: "rgba(99,102,241,0.08)",  sparkStroke: "#6366f1" },
-  emerald: { border: "rgba(16,185,129,0.18)",  iconBg: "rgba(16,185,129,0.1)",  iconText: "#34d399", glow: "rgba(16,185,129,0.08)",  sparkStroke: "#10b981" },
-  rose:    { border: "rgba(244,63,94,0.18)",   iconBg: "rgba(244,63,94,0.1)",   iconText: "#fb7185", glow: "rgba(244,63,94,0.08)",   sparkStroke: "#f43f5e" },
-  orange:  { border: "rgba(249,115,22,0.18)",  iconBg: "rgba(249,115,22,0.1)",  iconText: "#fb923c", glow: "rgba(249,115,22,0.08)",  sparkStroke: "#f97316" },
-  amber:   { border: "rgba(245,158,11,0.18)",  iconBg: "rgba(245,158,11,0.1)",  iconText: "#fbbf24", glow: "rgba(245,158,11,0.08)",  sparkStroke: "#f59e0b" },
-  purple:  { border: "rgba(168,85,247,0.18)",  iconBg: "rgba(168,85,247,0.1)",  iconText: "#c084fc", glow: "rgba(168,85,247,0.08)",  sparkStroke: "#a855f7" },
-  sky:     { border: "rgba(14,165,233,0.18)",  iconBg: "rgba(14,165,233,0.1)",  iconText: "#38bdf8", glow: "rgba(14,165,233,0.08)",  sparkStroke: "#0ea5e9" },
-};
-
-const trendCfg = {
-  up:   "text-emerald-400",
-  down: "text-rose-400",
-  flat: "text-slate-500",
-};
-
-function MiniSparkline({ data, stroke }: { data: number[]; stroke: string }) {
-  if (data.length < 2) return null;
+/* mini inline sparkline */
+function Spark({ data, color }: { data: number[]; color: string }) {
+  if (data.length < 2) return <div style={{ width: 56, height: 24 }} />;
   const max = Math.max(...data, 1);
-  const w = 64, h = 28;
+  const w = 56, h = 24, pad = 2;
   const pts = data.map((v, i) => {
     const x = (i / (data.length - 1)) * w;
-    const y = h - (v / max) * (h - 4) - 2;
+    const y = h - pad - ((v / max) * (h - pad * 2));
     return `${x},${y}`;
   }).join(" ");
-  const fillPts = `0,${h} ${pts} ${w},${h}`;
+  const area = `0,${h} ${pts} ${w},${h}`;
   return (
-    <svg width={w} height={h} className="overflow-visible">
+    <svg width={w} height={h} style={{ overflow: "visible" }}>
       <defs>
-        <linearGradient id={`sg-${stroke.replace("#","")}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={stroke} stopOpacity={0.3} />
-          <stop offset="100%" stopColor={stroke} stopOpacity={0.02} />
+        <linearGradient id={`sp-${color.replace("#","")}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.2} />
+          <stop offset="100%" stopColor={color} stopOpacity={0.01} />
         </linearGradient>
       </defs>
-      <polygon points={fillPts} fill={`url(#sg-${stroke.replace("#","")})`} />
-      <polyline points={pts} fill="none" stroke={stroke} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+      <polygon points={area} fill={`url(#sp-${color.replace("#","")})`} />
+      <polyline points={pts} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
 
-export function MetricCard({ title, value, sub, icon: Icon, trend, trendDir = "flat", accent = "indigo", sparkData }: Props) {
-  const cfg = accentCfg[accent];
+const ACCENT: Record<string, { color: string; dimColor: string }> = {
+  indigo:  { color: "#818cf8", dimColor: "rgba(99,102,241,.08)"  },
+  emerald: { color: "#34d399", dimColor: "rgba(16,185,129,.08)"  },
+  rose:    { color: "#fb7185", dimColor: "rgba(244,63,94,.08)"   },
+  orange:  { color: "#fb923c", dimColor: "rgba(249,115,22,.08)"  },
+  amber:   { color: "#fbbf24", dimColor: "rgba(245,158,11,.08)"  },
+  purple:  { color: "#c084fc", dimColor: "rgba(168,85,247,.08)"  },
+  sky:     { color: "#38bdf8", dimColor: "rgba(14,165,233,.08)"  },
+  default: { color: "#64748b", dimColor: "rgba(100,116,139,.06)" },
+};
+
+interface Props {
+  label: string;
+  value: number | string | null;
+  sub?: string;
+  icon?: LucideIcon;
+  trend?: string;
+  trendUp?: boolean;
+  accent?: keyof typeof ACCENT;
+  sparkData?: number[];
+}
+
+export function MetricCard({ label, value, sub, icon: Icon, trend, trendUp, accent = "default", sparkData }: Props) {
+  const { color, dimColor } = ACCENT[accent] ?? ACCENT.default;
   const isLoading = value === null;
 
   return (
     <motion.div
-      className="card relative overflow-hidden cursor-default"
-      style={{ borderColor: cfg.border, boxShadow: `0 0 24px ${cfg.glow}` }}
-      whileHover={{ y: -2, boxShadow: `0 8px 32px ${cfg.glow}, 0 0 0 1px ${cfg.border}` }}
-      transition={{ duration: 0.15 }}
+      className="card p-4 flex flex-col gap-2.5 relative overflow-hidden"
+      whileHover={{ y: -1, borderColor: "rgba(255,255,255,.12)" }}
+      transition={{ duration: .12 }}
+      style={{ cursor: "default" }}
     >
-      {/* top gradient sheen */}
-      <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${cfg.iconText}30, transparent)` }} />
+      {/* top line accent */}
+      <div className="absolute inset-x-0 top-0 h-px" style={{ background: `linear-gradient(90deg,transparent,${color}50,transparent)` }} />
 
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-2 mb-3">
-          <p className="text-[11px] font-semibold tracking-[0.06em] uppercase" style={{ color: "#475569" }}>{title}</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
           {Icon && (
-            <div className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center" style={{ background: cfg.iconBg }}>
-              <Icon size={14} style={{ color: cfg.iconText }} strokeWidth={2} />
+            <div className="w-5 h-5 rounded flex items-center justify-center" style={{ background: dimColor }}>
+              <Icon size={11} style={{ color }} strokeWidth={2} />
             </div>
           )}
+          <span style={{ color: "#475569", fontSize: 11, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase" }}>{label}</span>
         </div>
+        {trend && (
+          <span style={{ color: trendUp ? "#34d399" : "#fb7185", fontSize: 11, fontWeight: 600 }}>
+            {trendUp ? "↑" : "↓"} {trend}
+          </span>
+        )}
+      </div>
 
-        <div className="flex items-end justify-between gap-2">
-          <div>
-            <div className="text-[26px] font-bold text-white leading-none mono tabular-nums">
-              {isLoading ? <Skeleton className="w-16 h-7" /> :
-               typeof value === "number" ? <AnimatedNumber value={value} /> : value}
-            </div>
-            <div className="mt-1.5 flex items-center gap-1.5">
-              {trend && <span className={`text-[11px] font-semibold ${trendCfg[trendDir]}`}>{trend}</span>}
-              {sub && <span className="text-[11px]" style={{ color: "#334155" }}>{sub}</span>}
-            </div>
+      <div className="flex items-end justify-between gap-2">
+        <div>
+          <div className="mono font-bold tabular-nums" style={{ color: "#fff", fontSize: 26, lineHeight: 1 }}>
+            {isLoading ? <Skeleton className="w-16 h-6" /> :
+              typeof value === "number" ? <AnimatedNumber value={value} /> : value}
           </div>
-          {sparkData && <MiniSparkline data={sparkData} stroke={cfg.sparkStroke} />}
+          {sub && <div style={{ color: "#334155", fontSize: 11, marginTop: 4 }}>{sub}</div>}
         </div>
+        {sparkData && <Spark data={sparkData} color={color} />}
       </div>
     </motion.div>
   );
