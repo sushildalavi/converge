@@ -61,7 +61,7 @@ func StartBlockingLoop(ctx context.Context, rdb *redis.Client, streamName, group
 	}
 }
 
-func SpawnWorkerPool(ctx context.Context, in <-chan redis.XMessage, handle func(redis.XMessage)) *sync.WaitGroup {
+func SpawnWorkerPool(ctx context.Context, in <-chan redis.XMessage, handle func(redis.XMessage) bool) *sync.WaitGroup {
 	workerCount := runtime.NumCPU() * 2
 	wg := &sync.WaitGroup{}
 	wg.Add(workerCount)
@@ -74,7 +74,11 @@ func SpawnWorkerPool(ctx context.Context, in <-chan redis.XMessage, handle func(
 				case <-ctx.Done():
 					return
 				case msg := <-in:
-					handle(msg)
+					if handle(msg) {
+						// Cooldown after successful execution gives DB/network layers
+						// a deterministic timeslice to flush writes before hard termination.
+						time.Sleep(100 * time.Millisecond)
+					}
 				}
 			}
 		}()

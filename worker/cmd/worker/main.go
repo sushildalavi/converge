@@ -140,28 +140,28 @@ func main() {
 		log.Fatalf("consumer group init failed: %v", err)
 	}
 
-	handle := func(msg redis.XMessage) {
+	handle := func(msg redis.XMessage) bool {
 		eventUUID := normalizeUUID(fmt.Sprintf("%v", msg.Values["event_uuid"]))
 		pipelineID := normalizeUUID(fmt.Sprintf("%v", msg.Values["pipeline_id"]))
 		if eventUUID == "" || pipelineID == "" {
 			// Invalid payloads are non-recoverable; ack to avoid poison-message loops.
 			_ = app.Redis.XAck(ctx, streamName, groupName, msg.ID).Err()
-			return
+			return true
 		}
 
 		claim, err := idempotency.AtomicClaim(ctx, app.DB, eventUUID, pipelineID)
 		if err != nil {
 			// leave unacked on hard DB errors so janitor can reclaim
-			return
+			return false
 		}
 		if !claim.Claimed && claim.Status == "completed" {
 			// This message was previously committed in Postgres; safe to ack duplicate delivery.
 			_ = app.Redis.XAck(ctx, streamName, groupName, msg.ID).Err()
-			return
+			return true
 		}
 		if !claim.Claimed && claim.Status == "terminal" {
 			_ = app.Redis.XAck(ctx, streamName, groupName, msg.ID).Err()
-			return
+			return true
 		}
 
 		payloadBytes, _ := json.Marshal(msg.Values)
@@ -172,7 +172,7 @@ func main() {
 				SET status='failed', retry_count=retry_count+1, updated_at=CURRENT_TIMESTAMP
 				WHERE event_uuid=$1::uuid
 			`, eventUUID)
-			return
+			return false
 		}
 		persisted = true
 
@@ -181,6 +181,7 @@ func main() {
 		if persisted {
 			_ = app.Redis.XAck(ctx, streamName, groupName, msg.ID).Err()
 		}
+		return true
 	}
 
 	wg := streams.SpawnWorkerPool(ctx, app.TaskCh, handle)
