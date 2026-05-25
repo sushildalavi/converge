@@ -36,16 +36,18 @@ jobs:
 
     defaults:
       run:
-        working-directory: backend
+        working-directory: api
 
     steps:
       - uses: actions/checkout@v4
+      - name: Validate control-plane path
+        run: test -f api/requirements.txt
 
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11.9'
           cache: pip
-          cache-dependency-path: backend/requirements.txt
+          cache-dependency-path: api/requirements.txt
 
       - name: Install deps
         run: |
@@ -91,7 +93,11 @@ jobs:
     needs: [backend, frontend]
     steps:
       - uses: actions/checkout@v4
+      - name: Validate build contexts
+        run: |
+          test -f api/Dockerfile
+          test -f frontend/Dockerfile
       - name: Build backend image
-        run: docker build -t replayforge-backend:ci ./backend
+        run: docker build -t replayforge-backend:ci ./api
       - name: Build frontend image
         run: docker build -t replayforge-frontend:ci --target production ./frontend
