@@ -1,13 +1,19 @@
 package main
 
 import (
+	"crypto/sha1"
 	"context"
+	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
+	"replayforge/worker/pkg/idempotency"
+	"replayforge/worker/pkg/recovery"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 
@@ -62,6 +68,54 @@ func (a *Application) Teardown() {
 	_ = a.Redis.Close()
 }
 
+func ensureIdempotencySchema(ctx context.Context, app *Application) error {
+	_, err := app.DB.Exec(ctx, `
+		DO $$
+		BEGIN
+			IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'execution_status') THEN
+				CREATE TYPE execution_status AS ENUM ('processing', 'completed', 'failed', 'terminal');
+			END IF;
+		END $$;
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = app.DB.Exec(ctx, `
+		CREATE TABLE IF NOT EXISTS event_idempotency_registry (
+			event_uuid UUID PRIMARY KEY,
+			pipeline_id UUID NOT NULL,
+			status execution_status NOT NULL,
+			retry_count INT NOT NULL DEFAULT 0,
+			max_retries INT NOT NULL DEFAULT 3,
+			side_effect_hash TEXT,
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+		);
+	`)
+	if err != nil {
+		return err
+	}
+
+	_, err = app.DB.Exec(ctx, `
+		CREATE INDEX IF NOT EXISTS idx_event_idempotency_registry_pipeline_status
+		ON event_idempotency_registry USING BTREE (pipeline_id, status);
+	`)
+	return err
+}
+
+func normalizeUUID(raw string) string {
+	if raw == "" {
+		return ""
+	}
+	// deterministic uuid-v5 compatible hash mapping for non-uuid inputs
+	if strings.Count(raw, "-") == 4 && len(raw) == 36 {
+		return raw
+	}
+	sum := sha1.Sum([]byte(raw))
+	h := fmt.Sprintf("%x", sum)[:32]
+	return fmt.Sprintf("%s-%s-%s-%s-%s", h[:8], h[8:12], h[12:16], h[16:20], h[20:32])
+}
+
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -73,11 +127,55 @@ func main() {
 
 	streamName := "workflow_events"
 	groupName := "replay_forge_workers"
-	consumerName := "go-worker"
+	consumerName, _ := os.Hostname()
+	if consumerName == "" {
+		consumerName = "go-worker"
+	}
+
+	if err := ensureIdempotencySchema(ctx, app); err != nil {
+		log.Fatalf("schema ensure failed: %v", err)
+	}
 
 	if err := streams.EnsureConsumerGroup(ctx, app.Redis, streamName, groupName); err != nil {
 		log.Fatalf("consumer group init failed: %v", err)
 	}
+
+	handle := func(msg redis.XMessage) {
+		eventUUID := normalizeUUID(fmt.Sprintf("%v", msg.Values["event_uuid"]))
+		pipelineID := normalizeUUID(fmt.Sprintf("%v", msg.Values["pipeline_id"]))
+		if eventUUID == "" || pipelineID == "" {
+			_ = app.Redis.XAck(ctx, streamName, groupName, msg.ID).Err()
+			return
+		}
+
+		claim, err := idempotency.AtomicClaim(ctx, app.DB, eventUUID, pipelineID)
+		if err != nil {
+			// leave unacked on hard DB errors so janitor can reclaim
+			return
+		}
+		if !claim.Claimed && claim.Status == "completed" {
+			_ = app.Redis.XAck(ctx, streamName, groupName, msg.ID).Err()
+			return
+		}
+		if !claim.Claimed && claim.Status == "terminal" {
+			_ = app.Redis.XAck(ctx, streamName, groupName, msg.ID).Err()
+			return
+		}
+
+		payloadBytes, _ := json.Marshal(msg.Values)
+		if err := idempotency.CommitCompleted(ctx, app.DB, eventUUID, payloadBytes); err != nil {
+			_, _ = app.DB.Exec(ctx, `
+				UPDATE event_idempotency_registry
+				SET status='failed', retry_count=retry_count+1, updated_at=CURRENT_TIMESTAMP
+				WHERE event_uuid=$1::uuid
+			`, eventUUID)
+			return
+		}
+
+		_ = app.Redis.XAck(ctx, streamName, groupName, msg.ID).Err()
+	}
+
+	wg := streams.SpawnWorkerPool(ctx, app.TaskCh, handle)
 
 	go func() {
 		err := streams.StartBlockingLoop(ctx, app.Redis, streamName, groupName, consumerName, func(msg redis.XMessage) {
@@ -88,11 +186,20 @@ func main() {
 		}
 	}()
 
+	go recovery.StartJanitor(ctx, app.Redis, 5*time.Second, func(runCtx context.Context, rdb *redis.Client) {
+		claimed, err := recovery.AutoClaimPending(runCtx, rdb, streamName, groupName, consumerName, 30*time.Second)
+		if err != nil || len(claimed) == 0 {
+			return
+		}
+		recovery.RequeueClaimed(runCtx, claimed, app.TaskCh)
+	})
+
 	log.Println("go worker initialized; awaiting signal")
 	<-waitForSignal()
 	log.Println("signal intercepted; draining resources")
 	time.Sleep(250 * time.Millisecond)
 	cancel()
+	wg.Wait()
 	app.Teardown()
 	log.Println("teardown complete")
 }
