@@ -3,6 +3,7 @@ package idempotency
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -47,8 +48,24 @@ func AtomicClaim(ctx context.Context, db *pgxpool.Pool, eventUUID, pipelineID st
 		return ClaimResult{}, err
 	}
 
+	result, err := evaluateLockedState(status)
+	if err != nil {
+		return ClaimResult{}, err
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		return ClaimResult{}, err
 	}
-	return ClaimResult{Claimed: false, Status: status}, nil
+	return result, nil
+}
+
+func evaluateLockedState(status string) (ClaimResult, error) {
+	switch status {
+	case "completed":
+		return ClaimResult{Claimed: false, Status: "completed"}, nil
+	case "processing":
+		return ClaimResult{Claimed: false, Status: "processing"}, fmt.Errorf("event is currently processing")
+	default:
+		return ClaimResult{Claimed: false, Status: status}, nil
+	}
 }
