@@ -2,7 +2,8 @@ package streams
 
 import (
 	"context"
-	"errors"
+	"strings"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -12,19 +13,42 @@ func EnsureConsumerGroup(ctx context.Context, rdb *redis.Client, streamName, gro
 	if err == nil {
 		return nil
 	}
-	if err != nil && isBusyGroup(err) {
+	if strings.Contains(err.Error(), "BUSYGROUP") {
 		return nil
 	}
 	return err
 }
 
-func isBusyGroup(err error) bool {
-	if err == nil {
-		return false
-	}
-	return errors.Is(err, redis.ErrClosed) == false && containsBusyGroup(err.Error())
+func ReadGroupLoop(ctx context.Context, rdb *redis.Client, streamName, groupName, consumerName string) ([]redis.XStream, error) {
+	return rdb.XReadGroup(ctx, &redis.XReadGroupArgs{
+		Group:    groupName,
+		Consumer: consumerName,
+		Streams:  []string{streamName, ">"},
+		Count:    50,
+		Block:    2 * time.Second,
+	}).Result()
 }
 
-func containsBusyGroup(msg string) bool {
-	return len(msg) >= 9 && (msg == "BUSYGROUP" || (len(msg) > 9 && msg[:9] == "BUSYGROUP"))
+func StartBlockingLoop(ctx context.Context, rdb *redis.Client, streamName, groupName, consumerName string, handler func(redis.XMessage)) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		streams, err := ReadGroupLoop(ctx, rdb, streamName, groupName, consumerName)
+		if err != nil {
+			if err == redis.Nil {
+				continue
+			}
+			return err
+		}
+
+		for _, s := range streams {
+			for _, msg := range s.Messages {
+				handler(msg)
+			}
+		}
+	}
 }
