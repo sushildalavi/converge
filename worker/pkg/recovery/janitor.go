@@ -50,3 +50,13 @@ func AutoClaimPending(ctx context.Context, rdb *redis.Client, streamName, groupN
 
 	return claimed, nil
 }
+
+func RequeueClaimed(ctx context.Context, claimed []redis.XMessage, out chan<- redis.XMessage) {
+	for _, msg := range claimed {
+		select {
+		case <-ctx.Done():
+			return
+		case out <- msg:
+		}
+	}
+}
