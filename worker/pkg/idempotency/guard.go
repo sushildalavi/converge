@@ -2,6 +2,8 @@ package idempotency
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 
@@ -82,4 +84,26 @@ func evaluateLockedState(ctx context.Context, tx pgx.Tx, eventUUID, status strin
 	default:
 		return ClaimResult{Claimed: false, Status: status}, nil
 	}
+}
+
+func CommitCompleted(ctx context.Context, db *pgxpool.Pool, eventUUID string, sideEffectPayload []byte) error {
+	tx, err := db.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	h := sha256.Sum256(sideEffectPayload)
+	hash := hex.EncodeToString(h[:])
+
+	_, err = tx.Exec(ctx, `
+		UPDATE event_idempotency_registry
+		SET status = 'completed', side_effect_hash = $2, updated_at = CURRENT_TIMESTAMP
+		WHERE event_uuid = $1::uuid
+	`, eventUUID, hash)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
 }
