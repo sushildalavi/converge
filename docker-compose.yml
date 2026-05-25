@@ -34,6 +34,19 @@ services:
     ports:
       - "8000:8000"
 
+  go-worker:
+    build:
+      context: ./worker
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://replayforge_cp:replayforge_cp_pwd@postgres:5432/replayforge
+      REDIS_ADDR: redis:6379
+    depends_on:
+      - postgres
+      - redis
+    deploy:
+      replicas: 2
+
 volumes:
   postgres-data:
   redis-data:
