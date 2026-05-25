@@ -4,6 +4,8 @@ import (
 	"context"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -38,6 +40,12 @@ func newApplication(ctx context.Context) (*Application, error) {
 	return &Application{Redis: rdb, DB: db}, nil
 }
 
+func waitForSignal() <-chan os.Signal {
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	return sigCh
+}
+
 func main() {
 	ctx := context.Background()
 	app, err := newApplication(ctx)
@@ -47,5 +55,7 @@ func main() {
 	defer app.DB.Close()
 	defer app.Redis.Close()
 
-	log.Println("go worker baseline initialized")
+	log.Println("go worker initialized; awaiting signal")
+	<-waitForSignal()
+	log.Println("signal intercepted")
 }
