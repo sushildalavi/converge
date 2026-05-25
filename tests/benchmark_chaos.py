@@ -3,14 +3,54 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import time
 import uuid
 
+import psycopg2
 import redis
 
 STREAM = os.getenv("CHAOS_STREAM", "workflow_events")
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 TOTAL = int(os.getenv("CHAOS_TOTAL_EVENTS", "100000"))
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://replayforge_cp:replayforge_cp_pwd@localhost:5432/replayforge",
+)
+
+
+def kill_worker_mid_transit() -> None:
+    result = subprocess.run(
+        ["docker", "compose", "ps", "-q", "go-worker"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    ids = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    if not ids:
+        print("kill_skip reason=no_go_worker_containers")
+        return
+
+    victim = ids[-1]
+    subprocess.run(["docker", "compose", "kill", victim], check=False)
+    print(f"killed_container={victim}")
+
+
+def verify_registry_state() -> None:
+    with psycopg2.connect(DATABASE_URL) as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT status::text, COUNT(*)
+                FROM event_idempotency_registry
+                GROUP BY status
+                ORDER BY status
+                """
+            )
+            rows = cur.fetchall()
+
+    status_counts = {status: count for status, count in rows}
+    print("registry_status_counts=", status_counts)
 
 
 def seed_events() -> None:
@@ -28,11 +68,15 @@ def seed_events() -> None:
         }
         client.xadd(STREAM, payload)
 
+        if i == 30000:
+            kill_worker_mid_transit()
+
         if i > 0 and i % 10000 == 0:
             print(f"seeded={i}")
 
     elapsed = time.perf_counter() - t0
     print(f"seed_complete total={TOTAL} elapsed_s={elapsed:.2f}")
+    verify_registry_state()
 
 
 if __name__ == "__main__":
