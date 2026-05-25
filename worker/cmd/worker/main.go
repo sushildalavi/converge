@@ -144,6 +144,7 @@ func main() {
 		eventUUID := normalizeUUID(fmt.Sprintf("%v", msg.Values["event_uuid"]))
 		pipelineID := normalizeUUID(fmt.Sprintf("%v", msg.Values["pipeline_id"]))
 		if eventUUID == "" || pipelineID == "" {
+			// Invalid payloads are non-recoverable; ack to avoid poison-message loops.
 			_ = app.Redis.XAck(ctx, streamName, groupName, msg.ID).Err()
 			return
 		}
@@ -154,6 +155,7 @@ func main() {
 			return
 		}
 		if !claim.Claimed && claim.Status == "completed" {
+			// This message was previously committed in Postgres; safe to ack duplicate delivery.
 			_ = app.Redis.XAck(ctx, streamName, groupName, msg.ID).Err()
 			return
 		}
@@ -163,6 +165,7 @@ func main() {
 		}
 
 		payloadBytes, _ := json.Marshal(msg.Values)
+		persisted := false
 		if err := idempotency.CommitCompleted(ctx, app.DB, eventUUID, payloadBytes); err != nil {
 			_, _ = app.DB.Exec(ctx, `
 				UPDATE event_idempotency_registry
@@ -171,8 +174,13 @@ func main() {
 			`, eventUUID)
 			return
 		}
+		persisted = true
 
-		_ = app.Redis.XAck(ctx, streamName, groupName, msg.ID).Err()
+		// Two-phase durability rule:
+		// Redis ack is only allowed after the DB commit returned success.
+		if persisted {
+			_ = app.Redis.XAck(ctx, streamName, groupName, msg.ID).Err()
+		}
 	}
 
 	wg := streams.SpawnWorkerPool(ctx, app.TaskCh, handle)
