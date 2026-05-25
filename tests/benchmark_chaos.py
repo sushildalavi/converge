@@ -17,6 +17,7 @@ DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "postgresql://replayforge_cp:replayforge_cp_pwd@localhost:5432/replayforge",
 )
+POST_KILL_CONVERGENCE_WAIT_SECONDS = 45
 
 
 def kill_worker_mid_transit() -> None:
@@ -32,25 +33,38 @@ def kill_worker_mid_transit() -> None:
         return
 
     victim = ids[-1]
-    subprocess.run(["docker", "compose", "kill", victim], check=False)
+    subprocess.run(["docker", "kill", victim], check=False)
     print(f"killed_container={victim}")
 
 
 def verify_registry_state() -> None:
-    with psycopg2.connect(DATABASE_URL) as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT status::text, COUNT(*)
-                FROM event_idempotency_registry
-                GROUP BY status
-                ORDER BY status
-                """
-            )
-            rows = cur.fetchall()
+    deadline = time.time() + 180
+    status_counts = {}
 
-    status_counts = {status: count for status, count in rows}
+    while time.time() < deadline:
+        with psycopg2.connect(DATABASE_URL) as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT status::text, COUNT(*)
+                    FROM event_idempotency_registry
+                    GROUP BY status
+                    ORDER BY status
+                    """
+                )
+                rows = cur.fetchall()
+        status_counts = {status: count for status, count in rows}
+        completed = status_counts.get("completed", 0)
+        if completed >= TOTAL:
+            break
+        time.sleep(2)
+
     print("registry_status_counts=", status_counts)
+
+    if status_counts.get("completed", 0) < TOTAL:
+        raise RuntimeError(
+            f"incomplete processing: completed={status_counts.get('completed', 0)} total={TOTAL}"
+        )
 
 
 def seed_events() -> None:
@@ -76,6 +90,8 @@ def seed_events() -> None:
 
     elapsed = time.perf_counter() - t0
     print(f"seed_complete total={TOTAL} elapsed_s={elapsed:.2f}")
+    print(f"waiting_for_convergence_s={POST_KILL_CONVERGENCE_WAIT_SECONDS}")
+    time.sleep(POST_KILL_CONVERGENCE_WAIT_SECONDS)
     verify_registry_state()
 
 
