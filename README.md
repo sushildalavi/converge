@@ -15,13 +15,13 @@ ReplayForge is built to debug and recover asynchronous workflow failures under c
 
 ## Frontend Screenshots
 
-![Dashboard](/Users/sushildalavi/Desktop/Github/ReplayForge-Async-Workflow-Replay-Failure-Debugging-Platform/docs/screenshots/dashboard.png)
-![Dashboard Charts](/Users/sushildalavi/Desktop/Github/ReplayForge-Async-Workflow-Replay-Failure-Debugging-Platform/docs/screenshots/dashboard-charts.png)
-![Workflow Detail](/Users/sushildalavi/Desktop/Github/ReplayForge-Async-Workflow-Replay-Failure-Debugging-Platform/docs/screenshots/workflow-detail.png)
-![Workflow Timeline Expanded](/Users/sushildalavi/Desktop/Github/ReplayForge-Async-Workflow-Replay-Failure-Debugging-Platform/docs/screenshots/workflow-timeline-expanded.png)
-![Dead Letters](/Users/sushildalavi/Desktop/Github/ReplayForge-Async-Workflow-Replay-Failure-Debugging-Platform/docs/screenshots/dead-letters.png)
-![Workers](/Users/sushildalavi/Desktop/Github/ReplayForge-Async-Workflow-Replay-Failure-Debugging-Platform/docs/screenshots/workers.png)
-![Command Palette](/Users/sushildalavi/Desktop/Github/ReplayForge-Async-Workflow-Replay-Failure-Debugging-Platform/docs/screenshots/command-palette.png)
+![Dashboard](docs/screenshots/dashboard.png)
+![Dashboard Charts](docs/screenshots/dashboard-charts.png)
+![Workflow Detail](docs/screenshots/workflow-detail.png)
+![Workflow Timeline Expanded](docs/screenshots/workflow-timeline-expanded.png)
+![Dead Letters](docs/screenshots/dead-letters.png)
+![Workers](docs/screenshots/workers.png)
+![Command Palette](docs/screenshots/command-palette.png)
 
 ## Architecture
 
