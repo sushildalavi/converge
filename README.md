@@ -835,3 +835,18 @@ gcloud run deploy replayforge-worker \
 - `cancelled` status is reserved in the enum but not exposed via API
 - No dead-letter expiry or archival
 - No CI/CD pipeline (manual deploy steps above)
+
+## Reliability Benchmark Quickstart
+
+```bash
+make down
+make up
+make chaos
+make check
+```
+
+For ingestion-focused profiling, run:
+
+```bash
+make load
+```
