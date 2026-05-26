@@ -197,10 +197,14 @@ func main() {
 
 	go recovery.StartJanitor(ctx, app.Redis, 5*time.Second, func(runCtx context.Context, rdb *redis.Client) {
 		claimed, err := recovery.AutoClaimPending(runCtx, rdb, streamName, groupName, consumerName, 30*time.Second)
-		if err != nil || len(claimed) == 0 {
-			return
+		if err == nil && len(claimed) > 0 {
+			recovery.RequeueClaimed(runCtx, claimed, app.TaskCh)
 		}
-		recovery.RequeueClaimed(runCtx, claimed, app.TaskCh)
+		// Explicitly scan and force-reclaim stale/dead consumer PEL ownership.
+		forceClaimed, forceErr := recovery.ForceReclaimDeadConsumerPEL(runCtx, rdb, streamName, groupName, consumerName, 5*time.Second)
+		if forceErr == nil && len(forceClaimed) > 0 {
+			recovery.RequeueClaimed(runCtx, forceClaimed, app.TaskCh)
+		}
 	})
 
 	log.Println("go worker initialized; awaiting signal")
