@@ -1,9 +1,9 @@
-# Tests Directory
+# Tests
 
-- `benchmark_chaos.py`: seeds high-volume Redis Stream events, kills a worker mid-flight, and verifies PostgreSQL convergence.
+This directory holds the chaos benchmark that exercises the workflow recovery path.
 
-Run from repo root:
+Run the benchmark from the repo root:
 
 ```bash
-python3 tests/benchmark_chaos.py
+make chaos
 ```

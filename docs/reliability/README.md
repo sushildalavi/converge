@@ -1,9 +1,9 @@
-# ReplayForge Reliability Notes
+# Reliability Notes
 
-This directory tracks operational runbooks and benchmark references for the ReplayForge control-plane/data-plane architecture.
+This directory collects runbooks and benchmark references for the ReplayForge control plane and worker recovery flow.
 
 ## Scope
 
 - Load and chaos test command sequences
-- Interpretation guidance for Redis stream and PostgreSQL accounting metrics
-- Recovery diagnostics for worker crash scenarios
+- Redis stream and PostgreSQL diagnostics
+- Recovery checks for worker crash scenarios

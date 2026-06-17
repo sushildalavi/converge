@@ -30,7 +30,7 @@ def test_new_event_is_published_to_stream(db):
     def mock_publish(event_id: str) -> None:
         published_ids.append(event_id)
 
-    with patch("app.api.routes_events.publish_incoming", side_effect=mock_publish):
+    with patch("app.api.events.publish_incoming", side_effect=mock_publish):
         client = _make_client(db)
         resp = client.post("/api/events", json=_EVENT_PAYLOAD)
 
@@ -43,7 +43,7 @@ def test_new_event_is_published_to_stream(db):
 
 
 def test_duplicate_event_returns_200_and_duplicate_flag(db):
-    with patch("app.api.routes_events.publish_incoming"):
+    with patch("app.api.events.publish_incoming"):
         client = _make_client(db)
         r1 = client.post("/api/events", json=_EVENT_PAYLOAD)
         r2 = client.post("/api/events", json=_EVENT_PAYLOAD)
