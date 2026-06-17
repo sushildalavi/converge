@@ -62,6 +62,7 @@ jobs:
       - name: Run tests
         env:
           DATABASE_URL: postgresql://replayforge:replayforge@127.0.0.1:5432/replayforge
+          TEST_ADMIN_DATABASE_URL: postgresql://replayforge:replayforge@127.0.0.1:5432/replayforge
           REDIS_URL: redis://localhost:6379/0
           LOG_FORMAT: text
         run: pytest app/tests/ -v --ignore=app/tests/test_smoke_e2e.py
