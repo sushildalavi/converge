@@ -41,6 +41,24 @@ make chaos
 - The janitor reclaims stale pending entries.
 - The repo includes benchmark and diagnostic tooling for failure scenarios.
 
+## Optional ForgeLog Backend
+
+ReplayForge also ships an experimental WAL-backed storage service called ForgeLog.
+
+- Redis Streams remains the default backend.
+- Set `EVENT_BACKEND=forgelog` and `FORGELOG_URL` to route API ingestion to ForgeLog.
+- ForgeLog currently provides append/read/health/stats over a durable local log.
+- Raft replication is not enabled in the default implementation.
+- ForgeLog is not a production-ready database and does not claim exactly-once delivery.
+- The Redis Streams worker path remains available and unchanged by default.
+
+Local ForgeLog mode:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.forgelog.yml up --build -d
+python scripts/benchmark_forgelog.py --events 1000
+```
+
 ## Portfolio Proof
 
 - Architecture and evaluation: [docs/PORTFOLIO_PROOF.md](docs/PORTFOLIO_PROOF.md)

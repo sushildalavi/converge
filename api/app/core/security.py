@@ -49,8 +49,11 @@ async def require_api_key(
         return
 
     if not settings.api_keys_set:
-        log.warning("api keys disabled — set REPLAYFORGE_API_KEYS in production")
-        return
+        log.error("api keys not configured in production")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="API keys not configured",
+        )
 
     if not x_api_key:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="missing X-API-Key header")

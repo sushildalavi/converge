@@ -1,0 +1,23 @@
+services:
+  forgelog:
+    build:
+      context: ./forgelog
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      FORGELOG_ADDR: :9090
+      FORGELOG_DATA_DIR: /var/lib/forgelog
+    ports:
+      - "9090:9090"
+    volumes:
+      - forgelog-data:/var/lib/forgelog
+
+  control-plane:
+    environment:
+      EVENT_BACKEND: forgelog
+      FORGELOG_URL: http://forgelog:9090
+    depends_on:
+      - forgelog
+
+volumes:
+  forgelog-data:

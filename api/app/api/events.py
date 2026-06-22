@@ -9,8 +9,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.event_backends import append_event_to_backend
 from app.core.idempotency import get_or_create_event
-from app.core.redis_streams import publish_incoming
 from app.core.security import require_api_key
 from app.database import get_db
 from app.models import Event
@@ -33,9 +33,9 @@ def ingest_event(payload: EventCreate, db: DbDep, _auth: RequireKey = None) -> E
         db.commit()
         db.refresh(event)
         try:
-            publish_incoming(str(event.id))
+            append_event_to_backend(event, payload)
         except Exception:
-            log.exception("failed to publish event %s to stream", event.id)
+            log.exception("failed to publish event %s to backend", event.id)
     result = EventOut.model_validate(event)
     result.duplicate = duplicate
     return result

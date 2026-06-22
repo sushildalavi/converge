@@ -39,6 +39,8 @@ class Settings(BaseSettings):
     # ── http ─────────────────────────────────────────────
     cors_origins: str = "http://localhost:5173"
     request_timeout_seconds: int = 30
+    event_backend: str = "redis"  # "redis" or "forgelog"
+    forgelog_url: str = "http://forgelog:9090"
 
     # ── security ─────────────────────────────────────────
     # Comma-separated list of allowed API keys for write endpoints
@@ -78,6 +80,11 @@ class Settings(BaseSettings):
     @property
     def api_keys_set(self) -> bool:
         return len(self.api_keys_list) > 0
+
+    @property
+    def normalized_event_backend(self) -> str:
+        backend = self.event_backend.strip().lower()
+        return backend if backend in {"redis", "forgelog"} else "redis"
 
 
 @lru_cache

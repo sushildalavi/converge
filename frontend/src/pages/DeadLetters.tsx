@@ -51,12 +51,12 @@ function Row({ dl, refresh }: { dl:DeadLetterOut; refresh:()=>void }) {
           {dl.last_error??"—"}
         </span>
       </td>
-      <td className="td mono" style={{fontSize:11,color:"var(--dim)"}}>{ago(dl.created_at)} ago</td>
+      <td className="td mono" style={{fontSize:11,color:"var(--dim)"}}>{ago(dl.created_at)}</td>
       <td className="td">{done?<EventStatusBadge status="replayed"/>:<EventStatusBadge status="dead_lettered"/>}</td>
       <td className="td" style={{paddingRight:14}}>
         {done?(
           <span className="mono" style={{fontSize:10,color:"var(--dimmer)"}}>
-            {dl.replayed_at?ago(dl.replayed_at)+" ago":"just now"}
+            {dl.replayed_at?ago(dl.replayed_at):"just now"}
           </span>
         ):(
           <motion.button className="btn-green" onClick={replay} disabled={state==="replaying"}

@@ -9,8 +9,10 @@ import uuid
 
 import psycopg2
 import redis
+from api.app.core.redis_streams import GROUP as REDIS_GROUP
+from api.app.core.redis_streams import STREAM_INCOMING, STREAM_RETRY
 
-STREAM = os.getenv("CHAOS_STREAM", "workflow_events")
+STREAM = STREAM_INCOMING
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 TOTAL = int(os.getenv("CHAOS_TOTAL_EVENTS", "100000"))
 DATABASE_URL = os.getenv(
@@ -18,7 +20,7 @@ DATABASE_URL = os.getenv(
     "postgresql://replayforge_cp:replayforge_cp_pwd@localhost:5432/replayforge",
 )
 POST_KILL_CONVERGENCE_WAIT_SECONDS = 45
-GROUP = os.getenv("CHAOS_GROUP", "replay_forge_workers")
+GROUP = os.getenv("CHAOS_GROUP", REDIS_GROUP)
 ACTIVE_CONSUMER = os.getenv("CHAOS_ACTIVE_CONSUMER", "chaos-finalizer")
 
 
@@ -71,35 +73,36 @@ def verify_registry_state() -> None:
 
 def final_janitor_flush() -> None:
     client = redis.from_url(REDIS_URL, decode_responses=True)
-    consumers = client.xinfo_consumers(STREAM, GROUP)
-    for c in consumers:
-        pending = int(c.get("pending", 0))
-        idle_ms = int(c.get("idle", 0))
-        name = c.get("name", "")
-        if pending <= 0:
-            continue
-        if name == ACTIVE_CONSUMER:
-            continue
-        if idle_ms < 5000:
-            continue
+    for stream in (STREAM_INCOMING, STREAM_RETRY):
+        consumers = client.xinfo_consumers(stream, GROUP)
+        for c in consumers:
+            pending = int(c.get("pending", 0))
+            idle_ms = int(c.get("idle", 0))
+            name = c.get("name", "")
+            if pending <= 0:
+                continue
+            if name == ACTIVE_CONSUMER:
+                continue
+            if idle_ms < 5000:
+                continue
 
-        start = "0-0"
-        seen_starts = set()
-        while True:
-            if start in seen_starts:
-                break
-            seen_starts.add(start)
-            msgs, next_start, _deleted = client.xautoclaim(
-                STREAM,
-                GROUP,
-                ACTIVE_CONSUMER,
-                min_idle_time=5000,
-                start_id=start,
-                count=100,
-            )
-            if not msgs or next_start == "0-0" or next_start == start:
-                break
-            start = next_start
+            start = "0-0"
+            seen_starts = set()
+            while True:
+                if start in seen_starts:
+                    break
+                seen_starts.add(start)
+                msgs, next_start, _deleted = client.xautoclaim(
+                    stream,
+                    GROUP,
+                    ACTIVE_CONSUMER,
+                    min_idle_time=5000,
+                    start_id=start,
+                    count=100,
+                )
+                if not msgs or next_start == "0-0" or next_start == start:
+                    break
+                start = next_start
 
 
 def seed_events() -> None:
