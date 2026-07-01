@@ -67,6 +67,9 @@ jobs:
           LOG_FORMAT: text
         run: pytest app/tests/ -v --ignore=app/tests/test_smoke_e2e.py
 
+      - name: Check script syntax
+        run: python -m py_compile ../scripts/replay_harness.py ../scripts/benchmark_replay.py ../scripts/chaos_replay.py ../scripts/run_chaos_benchmark.py
+
   frontend:
     name: Frontend typecheck + build
     runs-on: ubuntu-latest
