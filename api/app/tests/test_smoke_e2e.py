@@ -5,11 +5,12 @@ Run with: pytest app/tests/test_smoke_e2e.py -v -m e2e
 Requires: docker compose up -d (all services running)
 """
 import time
+import os
 
 import httpx
 import pytest
 
-BASE = "http://localhost:8000"
+BASE = os.getenv("REPLAYFORGE_BASE_URL", "http://127.0.0.1:18000")
 
 
 @pytest.mark.e2e

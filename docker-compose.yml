@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: replayforge_cp_pwd
       POSTGRES_DB: replayforge
     ports:
-      - "5432:5432"
+      - "15432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -21,7 +21,7 @@ services:
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "6379:6379"
+      - "16379:6379"
     volumes:
       - redis-data:/data
 
@@ -37,7 +37,7 @@ services:
       - postgres
       - redis
     ports:
-      - "8000:8000"
+      - "18000:8000"
 
   go-worker:
     build:

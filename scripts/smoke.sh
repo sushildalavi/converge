@@ -13,15 +13,17 @@ docker compose up -d backend worker
 sleep 8
 
 echo "→ health check..."
-curl -fsS http://localhost:8000/health | grep '"ok"'
+BASE_URL="${REPLAYFORGE_BASE_URL:-http://127.0.0.1:18000}"
+
+curl -fsS "$BASE_URL/health" | grep '"ok"'
 
 echo "→ generating workload (20 workflows)..."
-curl -fsS -X POST 'http://localhost:8000/api/demo/generate-workload?count=20' | python3 -m json.tool
+curl -fsS -X POST "$BASE_URL/api/demo/generate-workload?count=20" | python3 -m json.tool
 
 echo "→ waiting for retries to cycle (120s max)..."
 SECONDS=0
 while true; do
-  IN_FLIGHT=$(curl -s http://localhost:8000/api/metrics | python3 -c \
+  IN_FLIGHT=$(curl -s "$BASE_URL/api/metrics" | python3 -c \
     'import sys,json; d=json.load(sys.stdin); print(d["queued"]+d["processing"])' 2>/dev/null || echo "999")
   if [ "$IN_FLIGHT" -lt 3 ] 2>/dev/null; then
     break
@@ -34,19 +36,19 @@ while true; do
 done
 
 echo "→ metrics after processing..."
-curl -fsS 'http://localhost:8000/api/metrics' | python3 -m json.tool
+curl -fsS "$BASE_URL/api/metrics" | python3 -m json.tool
 
 echo "→ checking for dead letters..."
-DLQ_COUNT=$(curl -s 'http://localhost:8000/api/deadletters' | python3 -c \
+DLQ_COUNT=$(curl -s "$BASE_URL/api/deadletters" | python3 -c \
   'import sys,json; print(len(json.load(sys.stdin)))' 2>/dev/null || echo "0")
 echo "   dead letters: $DLQ_COUNT"
 
 if [ "$DLQ_COUNT" -gt 0 ]; then
   echo "→ replaying first dead letter..."
-  DLQ_ID=$(curl -s 'http://localhost:8000/api/deadletters' | python3 -c \
+  DLQ_ID=$(curl -s "$BASE_URL/api/deadletters" | python3 -c \
     'import sys,json; items=json.load(sys.stdin); print(items[0]["id"] if items else "")' 2>/dev/null)
   if [ -n "$DLQ_ID" ]; then
-    curl -fsS -X POST "http://localhost:8000/api/deadletters/$DLQ_ID/replay" | python3 -c \
+    curl -fsS -X POST "$BASE_URL/api/deadletters/$DLQ_ID/replay" | python3 -c \
       'import sys,json; d=json.load(sys.stdin); print(f"replayed → status: {d[\"status\"]}")'
   fi
 fi

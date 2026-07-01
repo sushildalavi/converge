@@ -9,7 +9,7 @@ Prerequisites:
 Usage:
   python scripts/load_test.py                     # default: 200 events, 20 concurrent
   python scripts/load_test.py --events 500 --concurrency 50
-  python scripts/load_test.py --base-url http://host:8000
+  python scripts/load_test.py --base-url http://host:18000
 """
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 
 import httpx
 
-DEFAULT_BASE_URL = "http://localhost:8000"
+DEFAULT_BASE_URL = "http://127.0.0.1:18000"
 DEFAULT_EVENTS = 200
 DEFAULT_CONCURRENCY = 20
 POLL_INTERVAL = 0.3          # seconds between completion polls

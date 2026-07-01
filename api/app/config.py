@@ -22,8 +22,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     # ── core ─────────────────────────────────────────────
-    database_url: str = "postgresql://replayforge:replayforge@localhost:5432/replayforge"
-    redis_url: str = "redis://localhost:6379/0"
+    database_url: str = "postgresql://replayforge_cp:replayforge_cp_pwd@127.0.0.1:15432/replayforge"
+    redis_url: str = "redis://127.0.0.1:16379/0"
 
     # ── worker ───────────────────────────────────────────
     worker_name: str = _default_worker_name()
