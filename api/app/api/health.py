@@ -16,6 +16,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.config import settings
+from app.core.event_backends import backend_health, backend_stats
 from app.core.redis_streams import get_redis
 from app.database import get_db
 
@@ -28,6 +29,16 @@ DbDep = Annotated[Session, Depends(get_db)]
 @router.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "version": "0.1.0"}
+
+
+@router.get("/health/backend")
+def backend_status() -> dict[str, Any]:
+    return backend_health()
+
+
+@router.get("/health/backend/stats")
+def backend_status_stats() -> dict[str, Any]:
+    return backend_stats()
 
 
 @router.get("/health/live")

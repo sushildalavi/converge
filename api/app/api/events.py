@@ -27,7 +27,11 @@ RequireKey = Annotated[None, Depends(require_api_key)]
 @router.post("/api/events", status_code=201)
 def ingest_event(payload: EventCreate, db: DbDep, _auth: RequireKey = None) -> EventOut:
     event, duplicate = get_or_create_event(db, payload)
-    if not duplicate:
+    should_publish = not duplicate
+    if duplicate and event.status in {"received", "queued", "retrying"}:
+        should_publish = True
+
+    if should_publish:
         event.status = "queued"
         db.add(event)
         db.commit()
@@ -36,6 +40,11 @@ def ingest_event(payload: EventCreate, db: DbDep, _auth: RequireKey = None) -> E
             append_event_to_backend(event, payload)
         except Exception:
             log.exception("failed to publish event %s to backend", event.id)
+    elif event.status == "received":
+        event.status = "queued"
+        db.add(event)
+        db.commit()
+        db.refresh(event)
     result = EventOut.model_validate(event)
     result.duplicate = duplicate
     return result

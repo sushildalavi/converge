@@ -123,6 +123,14 @@ class MetricsOut(BaseModel):
     replay_success_rate: float
     active_workers: int
     stale_workers: int
+    processed_per_sec: float | None = None
+    retry_queue_depth: int = 0
+    incoming_stream_depth: int = 0
+    retry_stream_depth: int = 0
+    incoming_pending: int = 0
+    retry_pending: int = 0
+    replay_latency_ms: float | None = None
+    event_attempt_failures: int = 0
     avg_attempt_duration_ms: float | None = None
     p50_attempt_duration_ms: float | None = None
     p95_attempt_duration_ms: float | None = None
