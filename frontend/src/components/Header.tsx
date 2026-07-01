@@ -24,7 +24,7 @@ export function Header({ onCmdK }: { onCmdK: () => void }) {
     <div className="main-header">
       {/* breadcrumb */}
       <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:12, color:"var(--dim)", flex:1 }}>
-        <span>ReplayForge</span>
+        <span>Converge</span>
         <span style={{ color:"var(--dimmer)" }}>/</span>
         <span style={{ color:"var(--muted)", fontWeight:500 }}>{crumb}</span>
       </div>

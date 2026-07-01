@@ -1,6 +1,6 @@
 # Reliability Notes
 
-This directory collects runbooks and benchmark references for the ReplayForge control plane and worker recovery flow.
+This directory collects runbooks and benchmark references for the Converge control plane and worker recovery flow.
 
 ## Scope
 

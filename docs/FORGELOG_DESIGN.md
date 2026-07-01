@@ -1,6 +1,6 @@
 # ForgeLog Design
 
-ForgeLog is an optional WAL-backed event log for ReplayForge.
+ForgeLog is an optional WAL-backed event log for Converge.
 
 ## What it does
 

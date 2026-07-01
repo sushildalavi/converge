@@ -1,5 +1,5 @@
 """
-Production security layers for ReplayForge.
+Production security layers for Converge.
 
 Layer 1 — API key authentication (writes require X-API-Key header)
 Layer 2 — Per-IP rate limiting (Redis-backed, sliding window)

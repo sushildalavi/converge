@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-ReplayForge load test — measures ingestion throughput and end-to-end processing latency.
+Converge load test — measures ingestion throughput and end-to-end processing latency.
 
 Prerequisites:
   docker compose up -d          # backend + 3 workers + postgres + redis
@@ -271,7 +271,7 @@ async def run_load_test(base_url: str, total: int, concurrency: int) -> LoadTest
 
 
 def main():
-    parser = argparse.ArgumentParser(description="ReplayForge load test")
+    parser = argparse.ArgumentParser(description="Converge load test")
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL, help="Backend URL")
     parser.add_argument("--events", type=int, default=DEFAULT_EVENTS, help="Total events to ingest")
     parser.add_argument("--concurrency", type=int, default=DEFAULT_CONCURRENCY, help="Max concurrent requests")

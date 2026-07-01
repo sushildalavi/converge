@@ -199,7 +199,7 @@ def analyze_incident(artifact: dict[str, Any], *, base_url: str | None = None) -
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Run the ReplayForge incident recovery agent.")
+    parser = argparse.ArgumentParser(description="Run the Converge incident recovery agent.")
     parser.add_argument("--artifact", required=True)
     parser.add_argument("--base-url", default="")
     parser.add_argument("--json", action="store_true")

@@ -2,7 +2,7 @@
 
 ## What the project does
 
-ReplayForge is a distributed workflow recovery system built around Redis Streams, PostgreSQL, and idempotent replay.
+Converge is a distributed workflow recovery system built around Redis Streams, PostgreSQL, and idempotent replay.
 
 ## Why it is technically impressive
 
@@ -54,6 +54,6 @@ ReplayForge is a distributed workflow recovery system built around Redis Streams
 
 ## Verification Log
 
-- `python3 /Users/sushildalavi/Desktop/Github/ReplayForge/scripts/run_chaos_benchmark.py --events 10000 --workers 4 --pending` - pass - 2026-06-17 - Wrote pending JSON and Markdown artifacts under `benchmarks/`.
-- `python3 /Users/sushildalavi/Desktop/Github/ReplayForge/scripts/run_chaos_benchmark.py --pending --events 100 --workers 4 --output-dir /tmp/replayforge-bench --artifact-name replayforge_test` - pass - 2026-06-17 - Verified artifact writing in a custom output location.
+- `python3 /Users/sushildalavi/Desktop/Github/converge/scripts/run_chaos_benchmark.py --events 10000 --workers 4 --pending` - pass - 2026-06-17 - Wrote pending JSON and Markdown artifacts under `benchmarks/`.
+- `python3 /Users/sushildalavi/Desktop/Github/converge/scripts/run_chaos_benchmark.py --pending --events 100 --workers 4 --output-dir /tmp/replayforge-bench --artifact-name replayforge_test` - pass - 2026-06-17 - Verified artifact writing in a custom output location.
 - Direct helper checks against `scripts/run_chaos_benchmark.py` - pass - 2026-06-17 - Verified pending and measured artifact shapes through direct assertions.

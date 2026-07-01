@@ -37,7 +37,7 @@ def _forgelog_payload(event: Event, payload: EventCreate) -> dict[str, Any]:
         "max_attempts": event.max_attempts,
         "created_at": _timestamp(event.created_at),
         "updated_at": _timestamp(event.updated_at),
-        "source": "replayforge-api",
+        "source": "converge-api",
         "backend": "forgelog",
     }
 

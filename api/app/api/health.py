@@ -44,7 +44,7 @@ def backend_status_stats() -> dict[str, Any]:
 @router.get("/health/live")
 def liveness() -> dict[str, Any]:
     """Process is alive. Used by orchestrator to decide whether to restart."""
-    return {"status": "ok", "service": "replayforge-backend", "env": settings.environment}
+    return {"status": "ok", "service": "converge-backend", "env": settings.environment}
 
 
 @router.get("/health/ready")

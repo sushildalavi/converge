@@ -3,7 +3,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-echo "=== ReplayForge smoke test ==="
+echo "=== Converge smoke test ==="
 
 echo "→ restarting stack clean..."
 docker compose down -v

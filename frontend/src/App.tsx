@@ -47,7 +47,7 @@ function Inner() {
             </div>
             <div>
               <p style={{ fontSize:13, fontWeight:600, color:"var(--text)", letterSpacing:"-.01em" }}>
-                ReplayForge
+                Converge
               </p>
             </div>
           </div>

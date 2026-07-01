@@ -1,6 +1,7 @@
-# ReplayForge
+# Converge
 
-ReplayForge is a crash-recovery platform for asynchronous workflows.
+Converge is a crash-safe event replay and workflow recovery engine.
+Crash-Safe Event Replay & Workflow Recovery Engine.
 
 ## What it does
 
@@ -53,7 +54,7 @@ Local host ports:
 
 ## Optional ForgeLog Backend
 
-ReplayForge also ships an experimental WAL-backed storage service called ForgeLog.
+Converge also ships an experimental WAL-backed storage service called ForgeLog.
 
 - Redis Streams remains the default backend.
 - Set `EVENT_BACKEND=forgelog` and `FORGELOG_URL` to route API ingestion to ForgeLog.

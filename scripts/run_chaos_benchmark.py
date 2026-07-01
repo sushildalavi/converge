@@ -44,7 +44,7 @@ class BenchmarkResult:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Run or summarize a ReplayForge chaos benchmark.")
+    parser = argparse.ArgumentParser(description="Run or summarize a Converge chaos benchmark.")
     parser.add_argument("--events", type=int, default=10000)
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--kill-worker-at", default="")
@@ -104,7 +104,7 @@ def build_artifact(
 
 def render_markdown(artifact: dict[str, Any]) -> str:
     lines = [
-        "# ReplayForge Chaos Benchmark",
+        "# Converge Chaos Benchmark",
         "",
         f"- status: {artifact['status']}",
         f"- events: {artifact['events']}",

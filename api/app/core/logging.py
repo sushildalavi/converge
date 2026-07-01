@@ -25,7 +25,7 @@ class JsonFormatter(logging.Formatter):
             "logger": record.name,
             "message": record.getMessage(),
             "request_id": request_id_ctx.get(),
-            "service": "replayforge-backend",
+            "service": "converge-backend",
             "env": settings.environment,
             "worker": settings.worker_name if "worker" in record.name else None,
         }

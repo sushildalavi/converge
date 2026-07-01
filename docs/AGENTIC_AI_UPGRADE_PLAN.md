@@ -1,4 +1,4 @@
-# ReplayForge Agentic AI Upgrade Plan
+# Converge Agentic AI Upgrade Plan
 
 ## Current relevant capabilities
 - Chaos and recovery tooling already exist in `scripts/run_chaos_benchmark.py`, `scripts/check_state.sh`, `scripts/load_test.py`, `docs/FAILURE_MODES.md`, and `docs/BENCHMARKS.md`.

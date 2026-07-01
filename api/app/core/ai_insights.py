@@ -1,5 +1,5 @@
 """
-Three AI-powered insight layers for ReplayForge.
+Three AI-powered insight layers for Converge.
 
 LAYER 1 — Anomaly Detection
   Statistical detection of unusual patterns in event flow:

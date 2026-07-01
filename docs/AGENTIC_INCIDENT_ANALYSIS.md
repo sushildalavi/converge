@@ -1,6 +1,6 @@
 # Agentic Incident Analysis
 
-The ReplayForge incident recovery agent is a deterministic analysis wrapper around the benchmark artifact format.
+The Converge incident recovery agent is a deterministic analysis wrapper around the benchmark artifact format.
 
 ## Workflow
 
