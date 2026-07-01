@@ -104,6 +104,14 @@ export interface MetricsOut {
   replay_success_rate: number;
   active_workers: number;
   stale_workers: number;
+  processed_per_sec: number | null;
+  retry_queue_depth: number;
+  incoming_stream_depth: number;
+  retry_stream_depth: number;
+  incoming_pending: number;
+  retry_pending: number;
+  replay_latency_ms: number | null;
+  event_attempt_failures: number;
   avg_attempt_duration_ms: number | null;
   p50_attempt_duration_ms: number | null;
   p95_attempt_duration_ms: number | null;

@@ -18,6 +18,7 @@ import { usePolling } from "../hooks/usePolling";
 
 const pct = (n:number,d:number) => d===0?"–":`${((n/d)*100).toFixed(1)}%`;
 const fmtMs = (v:number|null) => v==null?"–":v<1000?`${Math.round(v)}ms`:`${(v/1000).toFixed(2)}s`;
+const fmtRate = (v:number|null) => v==null ? "–" : `${v.toFixed(1)}/s`;
 const ago = (iso:string|null) => {
   if(!iso) return "–";
   const s=Math.floor((Date.now()-new Date(iso).getTime())/1000);
@@ -147,6 +148,31 @@ export default function Dashboard() {
             <p className={s.mono?"mono":""} style={{ fontSize:18, fontWeight:700, color:s.color, letterSpacing:"-.02em", lineHeight:1 }}>
               {s.value===null ? <Skeleton className="w-10 h-4"/> :
                typeof s.value==="number" ? <AnimatedNumber value={s.value}/> : s.value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(5, 1fr)", gap:0,
+        border:"1px solid var(--border)", borderRadius:6, overflow:"hidden", background:"var(--card)" }}>
+        {[
+          { label:"Processed/s", value:m?.processed_per_sec ?? null, color:"var(--green)", mono:false },
+          { label:"Retry queue", value:m?.retry_queue_depth ?? null, color:"var(--orange)", mono:true },
+          { label:"Incoming pending", value:m?.incoming_pending ?? null, color:"var(--muted)", mono:true },
+          { label:"Retry pending", value:m?.retry_pending ?? null, color:"var(--muted)", mono:true },
+          { label:"Replay latency", value:m?.replay_latency_ms ?? null, color:"var(--blue)", mono:false },
+        ].map((s,i,arr)=>(
+          <div key={s.label} style={{ padding:"10px 12px",
+            borderRight: i<arr.length-1 ? "1px solid var(--border)" : "none" }}>
+            <p style={{ fontSize:9.5, fontWeight:600, color:"var(--dim)",
+              textTransform:"uppercase", letterSpacing:".07em", marginBottom:4 }}>{s.label}</p>
+            <p className={s.mono?"mono":""} style={{ fontSize:16, fontWeight:700, color:s.color, letterSpacing:"-.02em", lineHeight:1 }}>
+              {s.value===null ? <Skeleton className="w-10 h-4"/> :
+               typeof s.value==="number" ? (
+                 s.label === "Processed/s" ? fmtRate(s.value) :
+                 s.label === "Replay latency" ? fmtMs(s.value) :
+                 <AnimatedNumber value={s.value}/>
+               ) : s.value}
             </p>
           </div>
         ))}
