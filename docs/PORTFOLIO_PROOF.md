@@ -36,7 +36,9 @@ Converge is a distributed workflow recovery system built around Redis Streams, P
 
 ## Verified metrics only
 
-- No canonical benchmark numbers were extracted in this pass.
+- No inflated benchmark claims are made.
+- Checked-in replay artifact: `benchmarks/benchmark_replay_20260701T225501Z.json` with 1000 events, 612.29s recovery time, 1.63 end-to-end events/sec, and zero DLQ.
+- Checked-in chaos artifact: `benchmarks/chaos_replay_20260701T230628Z.json` with 100 events, 5.29s recovery time, 18.9 end-to-end events/sec, and zero DLQ.
 
 ## Current limitations
 
@@ -51,6 +53,7 @@ Converge is a distributed workflow recovery system built around Redis Streams, P
 
 - Built an at-least-once workflow recovery system with Redis Streams and PostgreSQL.
 - Designed idempotent replay and dead-letter recovery flows for distributed jobs.
+- Added a public landing page plus a dedicated recovery console for operators.
 - Documented chaos and recovery procedures for failure scenarios.
 
 ## Verification Log

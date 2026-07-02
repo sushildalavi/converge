@@ -137,7 +137,7 @@ export default function Dashboard() {
       <FadeUp>
         <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
           <div>
-            <h1 style={{ fontSize:17, fontWeight:600, color:"var(--text)", letterSpacing:"-.02em" }}>System Overview</h1>
+            <h1 style={{ fontSize:17, fontWeight:600, color:"var(--text)", letterSpacing:"-.02em" }}>Recovery Console</h1>
             {m && (
               <p className="mono" style={{ fontSize:11, color:"var(--dim)", marginTop:4 }}>
                 <span style={{color:"var(--muted)"}}><AnimatedNumber value={m.total_events}/></span> events
@@ -586,7 +586,7 @@ export default function Dashboard() {
                 <motion.tr key={w.workflow_id} className="tr"
                   initial={{opacity:0}} animate={{opacity:1}} transition={{delay:Math.min(i*.01,.2),duration:.15}}>
                   <td className="td" style={{paddingLeft:14}}>
-                    <Link to={`/workflows/${w.workflow_id}`}
+                    <Link to={`/app/workflows/${w.workflow_id}`}
                       style={{ color:"var(--accent2)", textDecoration:"none", fontSize:11.5,
                         fontFamily:"JetBrains Mono", fontWeight:500, display:"flex", alignItems:"center", gap:3 }}
                       onMouseEnter={e=>((e.currentTarget as HTMLElement).style.color="var(--text)")}

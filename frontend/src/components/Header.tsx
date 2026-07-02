@@ -6,7 +6,8 @@ import { api } from "../api/client";
 import { AnimatedNumber } from "./Animated";
 
 const CRUMBS: Record<string,string> = {
-  "/":"Overview", "/deadletters":"Dead Letters", "/workers":"Workers",
+  "/":"Landing", "/app":"Recovery Console", "/app/workers":"Workers", "/app/streams":"Streams", "/app/replay":"Replay / DLQ", "/app/convergence":"Convergence", "/app/chaos":"Chaos",
+  "/deadletters":"Replay / DLQ", "/workers":"Workers",
 };
 
 export function Header({ onCmdK }: { onCmdK: () => void }) {

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { BarChart2, AlertTriangle, Server, Zap, RefreshCw } from "lucide-react";
+import { BarChart2, AlertTriangle, Server, Zap, RefreshCw, Layers3, ShieldCheck, Workflow } from "lucide-react";
 import { api } from "../api/client";
 import { toast } from "sonner";
 
@@ -14,9 +14,13 @@ export function CommandPalette({ open, onClose }: { open:boolean; onClose:()=>vo
   const ref = useRef<HTMLInputElement>(null);
 
   const items: Item[] = [
-    { id:"dash",    label:"Overview",       sub:"Dashboard — live metrics",   icon:<BarChart2 size={13}/>,    action:()=>{ nav("/");onClose() } },
-    { id:"dlq",     label:"Dead Letters",   sub:"Review and replay failures", icon:<AlertTriangle size={13}/>, action:()=>{ nav("/deadletters");onClose() } },
-    { id:"workers", label:"Workers",        sub:"Heartbeat monitor",          icon:<Server size={13}/>,        action:()=>{ nav("/workers");onClose() } },
+    { id:"landing", label:"Landing page",   sub:"Product story and demo flow", icon:<BarChart2 size={13}/>,    action:()=>{ nav("/");onClose() } },
+    { id:"dash",    label:"Recovery Console", sub:"Live metrics and recovery state", icon:<ShieldCheck size={13}/>, action:()=>{ nav("/app");onClose() } },
+    { id:"workers", label:"Workers",        sub:"Heartbeat monitor",          icon:<Server size={13}/>,        action:()=>{ nav("/app/workers");onClose() } },
+    { id:"streams", label:"Stream backlog",  sub:"Pending entries and retry state", icon:<Workflow size={13}/>, action:()=>{ nav("/app/streams");onClose() } },
+    { id:"dlq",     label:"Replay / DLQ",    sub:"Review and replay failures", icon:<Layers3 size={13}/>, action:()=>{ nav("/app/replay");onClose() } },
+    { id:"conv",    label:"Convergence",     sub:"Recovery verification", icon:<ShieldCheck size={13}/>, action:()=>{ nav("/app/convergence");onClose() } },
+    { id:"chaos",   label:"Chaos results",   sub:"Measured benchmark artifacts", icon:<AlertTriangle size={13}/>, action:()=>{ nav("/app/chaos");onClose() } },
     { id:"gen",     label:"Generate workload", sub:"30 synthetic checkout flows", icon:<Zap size={13}/>,
       action:async()=>{ onClose(); try{ const r=await api.generateWorkload(30); toast.success("Generated",{description:`${r.events_sent} events queued`}) }catch{ toast.error("Failed") } } },
     { id:"reload",  label:"Reload",         sub:"Hard refresh all data",      icon:<RefreshCw size={13}/>,     action:()=>window.location.reload() },

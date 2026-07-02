@@ -38,7 +38,7 @@ function Row({ dl, refresh }: { dl:DeadLetterOut; refresh:()=>void }) {
         <span className="mono" style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{dl.event_type}</span>
       </td>
       <td className="td">
-        <Link to={`/workflows/${dl.workflow_id}`}
+        <Link to={`/app/workflows/${dl.workflow_id}`}
           style={{color:"var(--accent2)",textDecoration:"none",fontFamily:"JetBrains Mono",fontSize:11}}
           onMouseEnter={e=>((e.currentTarget as HTMLElement).style.color="var(--text)")}
           onMouseLeave={e=>((e.currentTarget as HTMLElement).style.color="var(--accent2)")}>
@@ -82,9 +82,9 @@ export default function DeadLetters() {
       <FadeUp>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
           <AlertTriangle size={16} style={{color:"var(--red)"}}/>
-          <h1 style={{fontSize:17,fontWeight:600,color:"var(--text)",letterSpacing:"-.02em"}}>Dead Letter Queue</h1>
+          <h1 style={{fontSize:17,fontWeight:600,color:"var(--text)",letterSpacing:"-.02em"}}>Replay / DLQ</h1>
         </div>
-        <p style={{fontSize:12,color:"var(--dim)",marginTop:4}}>Events that exhausted all retry attempts</p>
+        <p style={{fontSize:12,color:"var(--dim)",marginTop:4}}>Dead letters and operator replay actions</p>
       </FadeUp>
 
       {data&&data.length>0&&(

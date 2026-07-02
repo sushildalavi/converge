@@ -154,7 +154,7 @@ export default function WorkflowDetail() {
       <FadeUp>
         <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
           <div>
-            <Link to="/" style={{ display:"flex", alignItems:"center", gap:4, fontSize:11,
+            <Link to="/app" style={{ display:"flex", alignItems:"center", gap:4, fontSize:11,
               color:"var(--dim)", textDecoration:"none", marginBottom:8 }}
               onMouseEnter={e=>((e.currentTarget as HTMLElement).style.color="var(--muted)")}
               onMouseLeave={e=>((e.currentTarget as HTMLElement).style.color="var(--dim)")}>

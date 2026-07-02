@@ -10,6 +10,7 @@ Converge is a crash-safe workflow recovery engine with evidence-grounded replay 
 - Persists idempotent state in PostgreSQL
 - Recovers stalled work with a janitor loop
 - Exposes the system through an API and dashboard
+- Ships a public product landing page plus a dedicated recovery console
 - Publishes live backlog, retry, replay-latency, and worker health metrics
 - Verifies convergence with explicit replay and recovery reports
 - Generates evidence-grounded recovery postmortems from benchmark, chaos, and convergence evidence
@@ -44,6 +45,23 @@ Local host ports:
 - PostgreSQL: `127.0.0.1:15432`
 - Redis: `127.0.0.1:16379`
 - Frontend: `http://localhost:5173`
+
+## Product tour
+
+- `/` public landing page
+- `/app` recovery console
+- `/app/workers` worker health and heartbeats
+- `/app/streams` Redis backlog, pending entries, and retry state
+- `/app/replay` replay and DLQ recovery
+- `/app/convergence` convergence verification
+- `/app/chaos` benchmark and chaos evidence
+
+## Measured evidence
+
+The UI only shows checked-in metrics from real artifacts:
+
+- `benchmarks/benchmark_replay_20260701T225501Z.json` - 1000 events, converged, 0 DLQ, 612.29s recovery time, 1.63 end-to-end events/sec
+- `benchmarks/chaos_replay_20260701T230628Z.json` - 100 events, converged, 0 DLQ, 5.29s recovery time, 18.9 end-to-end events/sec
 
 ## Correctness Model
 
@@ -100,6 +118,7 @@ python scripts/evaluate_postmortem.py
 More details:
 
 - Architecture and guardrails: [docs/RECOVERY_POSTMORTEM.md](docs/RECOVERY_POSTMORTEM.md)
+- Product demo route map and talk track: [docs/PRODUCT_DEMO.md](docs/PRODUCT_DEMO.md)
 - Existing incident-analysis notes: [docs/AGENTIC_INCIDENT_ANALYSIS.md](docs/AGENTIC_INCIDENT_ANALYSIS.md)
 - The generator is evidence-grounded and returns `insufficient_evidence` when the artifacts are too thin.
 - It does not replace the recovery engine, the dashboard, or the runbook.
