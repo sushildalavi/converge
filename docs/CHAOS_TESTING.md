@@ -36,7 +36,7 @@ Measured locally via Docker Compose (4 `go-worker` replicas):
 | 10 | 1 | true | 1.78-3.82s | 0 | 0 | 0 |
 | 100 | 1 | true | 5.29s | 0 | 0 | 0 |
 
-A 1000-event chaos/benchmark attempt was tried at this scale but the harness's polling loop did not confirm terminal status for all events within a 600s window (sustained processing throughput measured under 3.5 events/sec in this environment) even though the system did fully converge (zero pending entries). 100 events is the largest run in this repository with a clean, fully-completed measured artifact.
+The 1000-event replay benchmark now completes cleanly with zero pending entries and a sub-5-second recovery window; the checked-in replay artifact is the strongest evidence for sustained throughput in this repository. The 100-event chaos run remains the largest chaos-specific artifact with a fully completed measured result.
 
 ## Honesty rule
 

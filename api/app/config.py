@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     worker_heartbeat_interval: int = 5
     worker_stale_threshold: int = 30
     worker_xreadgroup_block_ms: int = 5000
-    worker_xreadgroup_count: int = 10
+    worker_xreadgroup_count: int = 50
 
     # ── ai ───────────────────────────────────────────────
     anthropic_api_key: str = ""
@@ -61,8 +61,8 @@ class Settings(BaseSettings):
     environment: str = "development"  # "development" | "staging" | "production"
 
     # ── pool sizing ──────────────────────────────────────
-    db_pool_size: int = 5
-    db_max_overflow: int = 10
+    db_pool_size: int = 50
+    db_max_overflow: int = 50
     db_pool_recycle: int = 300
 
     def model_post_init(self, _ctx) -> None:

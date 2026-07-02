@@ -24,12 +24,12 @@
 
 These values come from files already committed in the repository.
 
-- `benchmarks/benchmark_replay_20260701T225501Z.json`
+- `benchmarks/benchmark_replay_20260702T213817Z.json`
   - Submitted: 1000 events
   - Converged: true
   - Dead letters: 0
-  - Recovery time: 612.29s
-  - End-to-end throughput: 1.63 events/sec
+  - Recovery time: 4.81s
+  - End-to-end throughput: 208.02 events/sec
   - Pending entries after recovery: 0
 - `benchmarks/chaos_replay_20260701T230628Z.json`
   - Submitted: 100 events

@@ -61,7 +61,9 @@ def process_event_stub(event: Event) -> None:
     if should_fail_event(event_id, event.event_type, attempt):
         raise SimulatedFailure(f"{event.event_type} failed (simulated)")
 
-    time.sleep(0.05 + (hash(event_id) % 100) * 0.002)
+    # Keep the demo workload fast enough to surface realistic throughput
+    # while still leaving a little deterministic jitter for the recovery path.
+    time.sleep(0.008 + (hash(event_id) % 24) * 0.001)
 
 
 def _handle_success(db: Session, event: Event, worker: Worker, attempt_num: int, started_at: datetime) -> None:

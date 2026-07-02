@@ -14,7 +14,7 @@ from app.core.idempotency import get_or_create_event
 from app.core.security import require_api_key
 from app.database import get_db
 from app.models import Event
-from app.schemas import EventCreate, EventOut
+from app.schemas import EventCreate, EventOut, EventStatusBatchRequest, EventStatusOut
 
 router = APIRouter(tags=["events"])
 demo_router = APIRouter(tags=["demo"])
@@ -33,18 +33,15 @@ def ingest_event(payload: EventCreate, db: DbDep, _auth: RequireKey = None) -> E
 
     if should_publish:
         event.status = "queued"
-        db.add(event)
-        db.commit()
-        db.refresh(event)
+    elif event.status == "received":
+        event.status = "queued"
+    db.add(event)
+    db.commit()
+    if should_publish:
         try:
             append_event_to_backend(event, payload)
         except Exception:
             log.exception("failed to publish event %s to backend", event.id)
-    elif event.status == "received":
-        event.status = "queued"
-        db.add(event)
-        db.commit()
-        db.refresh(event)
     result = EventOut.model_validate(event)
     result.duplicate = duplicate
     return result
@@ -81,6 +78,26 @@ def get_event(event_id: UUID, db: DbDep) -> EventOut:
     if not event:
         raise HTTPException(status_code=404, detail="event not found")
     return EventOut.model_validate(event)
+
+
+@router.post("/api/events/status", response_model=list[EventStatusOut])
+def get_event_statuses(payload: EventStatusBatchRequest, db: DbDep) -> list[EventStatusOut]:
+    if not payload.event_ids:
+        return []
+
+    rows = db.execute(
+        select(Event.id, Event.status, Event.updated_at, Event.attempt_count).where(Event.id.in_(payload.event_ids))
+    ).all()
+    by_id = {
+        row[0]: EventStatusOut(
+            id=row[0],
+            status=row[1],
+            updated_at=row[2],
+            attempt_count=int(row[3] or 0),
+        )
+        for row in rows
+    }
+    return [by_id[event_id] for event_id in payload.event_ids if event_id in by_id]
 
 
 @demo_router.post("/api/demo/generate-workload")

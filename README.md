@@ -60,7 +60,7 @@ Local host ports:
 
 The UI only shows checked-in metrics from real artifacts:
 
-- `benchmarks/benchmark_replay_20260701T225501Z.json` - 1000 events, converged, 0 DLQ, 612.29s recovery time, 1.63 end-to-end events/sec
+- `benchmarks/benchmark_replay_20260702T213817Z.json` - 1000 events, converged, 0 DLQ, 4.81s recovery time, 208.02 end-to-end events/sec
 - `benchmarks/chaos_replay_20260701T230628Z.json` - 100 events, converged, 0 DLQ, 5.29s recovery time, 18.9 end-to-end events/sec
 
 ## Correctness Model

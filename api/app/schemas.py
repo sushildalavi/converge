@@ -32,6 +32,17 @@ class EventAttemptOut(BaseModel):
     duration_ms: int | None = None
 
 
+class EventStatusOut(BaseModel):
+    id: uuid.UUID
+    status: str
+    updated_at: datetime | None = None
+    attempt_count: int = 0
+
+
+class EventStatusBatchRequest(BaseModel):
+    event_ids: list[uuid.UUID] = Field(default_factory=list)
+
+
 class EventOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

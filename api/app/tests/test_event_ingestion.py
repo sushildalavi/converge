@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.main import app
+from app.models import Event
 from app.database import get_db
 from app.schemas import EventCreate
 from app.core.idempotency import get_or_create_event
@@ -87,3 +88,19 @@ def test_duplicate_retry_represents_publish_recovery(db):
     assert second.status_code == 201
     assert second.json()["duplicate"] is True
     assert republished, "duplicate retry should republish the persisted event"
+
+
+def test_batch_event_status_endpoint_returns_multiple_rows(db):
+    client = _make_client(db)
+    with patch("app.api.events.append_event_to_backend"):
+        r1 = client.post("/api/events", json={**_EVENT_PAYLOAD, "idempotency_key": "wf-stream-1_a"})
+        r2 = client.post("/api/events", json={**_EVENT_PAYLOAD, "idempotency_key": "wf-stream-1_b"})
+    assert r1.status_code == 201
+    assert r2.status_code == 201
+    event_ids = [r1.json()["id"], r2.json()["id"]]
+
+    response = client.post("/api/events/status", json={"event_ids": event_ids})
+    assert response.status_code == 200
+    body = response.json()
+    assert [item["id"] for item in body] == event_ids
+    assert all(item["status"] == "queued" for item in body)

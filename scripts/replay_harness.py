@@ -114,24 +114,33 @@ async def submit_events(
     ) as client:
         async def _submit(payload: dict[str, Any]) -> SubmittedEvent:
             async with sem:
-                submitted_at = time.perf_counter()
-                try:
-                    response = await client.post(f"{base_url.rstrip('/')}/api/events", json=payload)
-                    body = response.json() if response.headers.get("content-type", "").startswith("application/json") else {}
-                    return SubmittedEvent(
-                        event_id=str(body.get("id", "")),
-                        duplicate=bool(body.get("duplicate")),
-                        submitted_at=submitted_at,
-                        status_code=response.status_code,
-                    )
-                except Exception as exc:
-                    return SubmittedEvent(
-                        event_id="",
-                        duplicate=False,
-                        submitted_at=submitted_at,
-                        status_code=0,
-                        error=str(exc),
-                    )
+                last_error: str | None = None
+                for attempt in range(3):
+                    submitted_at = time.perf_counter()
+                    try:
+                        response = await client.post(f"{base_url.rstrip('/')}/api/events", json=payload)
+                        body = response.json() if response.headers.get("content-type", "").startswith("application/json") else {}
+                        if response.status_code == 201:
+                            return SubmittedEvent(
+                                event_id=str(body.get("id", "")),
+                                duplicate=bool(body.get("duplicate")),
+                                submitted_at=submitted_at,
+                                status_code=response.status_code,
+                            )
+                        last_error = f"unexpected status {response.status_code}"
+                        if response.status_code < 500 and response.status_code not in {408, 429}:
+                            break
+                    except Exception as exc:
+                        last_error = str(exc)
+                    if attempt < 2:
+                        await asyncio.sleep(0.2 * (attempt + 1))
+                return SubmittedEvent(
+                    event_id="",
+                    duplicate=False,
+                    submitted_at=time.perf_counter(),
+                    status_code=0,
+                    error=last_error or "request failed",
+                )
 
         submitted = await asyncio.gather(*[_submit(payload) for payload in payloads])
     return submitted
@@ -144,6 +153,7 @@ async def wait_for_terminal_events(
     *,
     timeout_seconds: float = 180.0,
     poll_interval_seconds: float = 0.25,
+    batch_size: int = 200,
 ) -> list[TerminalEvent]:
     pending = set(event_ids)
     results: dict[str, TerminalEvent] = {}
@@ -151,23 +161,30 @@ async def wait_for_terminal_events(
 
     async with httpx.AsyncClient(timeout=httpx.Timeout(10.0)) as client:
         while pending and time.monotonic() < deadline:
-            batch = list(pending)[:50]
-            for event_id in batch:
+            batch_ids = list(pending)
+            batches = [batch_ids[i : i + max(1, batch_size)] for i in range(0, len(batch_ids), max(1, batch_size))]
+
+            async def _poll_batch(batch: list[str]) -> list[dict[str, Any]]:
                 try:
-                    response = await client.get(f"{base_url.rstrip('/')}/api/events/{event_id}")
+                    response = await client.post(f"{base_url.rstrip('/')}/api/events/status", json={"event_ids": batch})
                     if response.status_code != 200:
-                        continue
+                        return []
                     body = response.json()
-                    status = body.get("status", "")
-                    if status in {"succeeded", "failed", "dead_lettered", "cancelled"}:
+                    return body if isinstance(body, list) else []
+                except Exception:
+                    return []
+
+            for body in await asyncio.gather(*[_poll_batch(batch) for batch in batches]):
+                for item in body:
+                    event_id = str(item.get("id", ""))
+                    status = str(item.get("status", ""))
+                    if event_id in pending and status in {"succeeded", "failed", "dead_lettered", "cancelled"}:
                         pending.discard(event_id)
                         results[event_id] = TerminalEvent(
                             event_id=event_id,
                             status=status,
                             e2e_ms=(time.perf_counter() - submitted_at[event_id]) * 1000.0,
                         )
-                except Exception:
-                    continue
             if pending:
                 await asyncio.sleep(poll_interval_seconds)
 

@@ -157,7 +157,7 @@ async def run_benchmark(args: argparse.Namespace) -> dict[str, Any] | None:
         payloads,
         concurrency=args.concurrency,
         api_key=args.api_key,
-        timeout_seconds=min(args.timeout_seconds, 30.0),
+        timeout_seconds=min(args.timeout_seconds, 60.0),
     )
     ingest_done = asyncio.get_running_loop().time()
 

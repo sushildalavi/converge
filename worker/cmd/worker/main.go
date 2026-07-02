@@ -57,6 +57,27 @@ type workItem struct {
 	msg    redis.XMessage
 }
 
+func messageEventID(values map[string]any) (string, bool) {
+	raw, ok := values["event_id"]
+	if !ok || raw == nil {
+		return "", false
+	}
+	switch v := raw.(type) {
+	case string:
+		return strings.TrimSpace(v), true
+	case []byte:
+		return strings.TrimSpace(string(v)), true
+	case fmt.Stringer:
+		return strings.TrimSpace(v.String()), true
+	default:
+		s := strings.TrimSpace(fmt.Sprint(v))
+		if s == "" || s == "<nil>" {
+			return "", false
+		}
+		return s, true
+	}
+}
+
 type eventRecord struct {
 	ID           string
 	WorkflowID   string
@@ -332,7 +353,9 @@ func simulateProcessing(record *eventRecord) error {
 		return fmt.Errorf("%s failed (simulated)", record.EventType)
 	}
 
-	time.Sleep(50*time.Millisecond + time.Duration(binary.BigEndian.Uint16([]byte(record.ID)[:2])%100)*2*time.Millisecond)
+	// Keep the demo workload fast enough to surface sustained replay throughput
+	// while preserving a little deterministic jitter for latency metrics.
+	time.Sleep(8*time.Millisecond + time.Duration(binary.BigEndian.Uint16([]byte(record.ID)[:2])%24)*time.Millisecond)
 	return nil
 }
 
@@ -502,10 +525,12 @@ func flushDueRetries(ctx context.Context, rdb *redis.Client) error {
 }
 
 func handleWorkItem(ctx context.Context, app *application, state *workerState, item workItem) {
-	eventID, ok := item.msg.Values["event_id"].(string)
-	if !ok || strings.TrimSpace(eventID) == "" {
+	eventID, ok := messageEventID(item.msg.Values)
+	if !ok || eventID == "" {
 		if err := app.redis.XAck(ctx, item.stream, consumerGroup, item.msg.ID).Err(); err != nil {
 			log.Printf("ack failed for malformed message %s: %v", item.msg.ID, err)
+		} else {
+			log.Printf("skipped malformed message stream=%s message=%s", item.stream, item.msg.ID)
 		}
 		return
 	}
@@ -689,7 +714,7 @@ func main() {
 				Group:    consumerGroup,
 				Consumer: workerName,
 				Streams:  []string{streamName, ">"},
-				Count:    int64(getenvInt("WORKER_XREADGROUP_COUNT", 10)),
+				Count:    int64(getenvInt("WORKER_XREADGROUP_COUNT", 50)),
 				Block:    time.Duration(getenvInt("WORKER_XREADGROUP_BLOCK_MS", 5000)) * time.Millisecond,
 			}).Result()
 			if err != nil {

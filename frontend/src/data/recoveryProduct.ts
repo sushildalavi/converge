@@ -21,17 +21,17 @@ export const measuredArtifacts: MeasuredArtifact[] = [
     id: "replay-1000",
     title: "1000-event replay validation",
     kind: "benchmark",
-    source: "benchmarks/benchmark_replay_20260701T225501Z.json",
+    source: "benchmarks/benchmark_replay_20260702T213817Z.json",
     submitted: 1000,
     converged: true,
     dead_letters: 0,
-    recovery_time_seconds: 612.29,
-    ingest_throughput_events_per_sec: 83.08,
-    end_to_end_throughput_events_per_sec: 1.63,
-    p50_e2e_ms: 9987.74,
-    p95_e2e_ms: 16354.59,
-    stream_backlog: 4098,
-    note: "Latest checked-in replay benchmark; converged with zero DLQ and zero pending entries.",
+    recovery_time_seconds: 4.81,
+    ingest_throughput_events_per_sec: 210.88,
+    end_to_end_throughput_events_per_sec: 208.02,
+    p50_e2e_ms: 2427.25,
+    p95_e2e_ms: 4474.94,
+    stream_backlog: 1000,
+    note: "Latest checked-in replay benchmark; converged with zero DLQ, zero pending entries, and zero duplicate side effects.",
   },
   {
     id: "chaos-100",
@@ -126,8 +126,8 @@ export const demoFlow = [
   { label: "Retry count", value: "0" },
   { label: "DLQ count", value: "0" },
   { label: "Convergence", value: "true" },
-  { label: "Recovery time", value: "5.29s" },
-  { label: "Throughput", value: "18.9 events/sec" },
+  { label: "Recovery time", value: "4.81s" },
+  { label: "Throughput", value: "208.02 events/sec" },
 ];
 
 export const heroStats = [
@@ -143,7 +143,7 @@ export const heroStats = [
   },
   {
     label: "Replay throughput",
-    value: "1.63 events/sec",
+    value: "208.02 events/sec",
     detail: "End-to-end on the latest replay artifact",
   },
   {

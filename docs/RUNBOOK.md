@@ -195,9 +195,9 @@ curl -s http://127.0.0.1:18000/api/convergence | jq
 | `WORKER_HEARTBEAT_INTERVAL` | 5s | Heartbeat write cadence |
 | `WORKER_STALE_THRESHOLD` | 30s | Stale detection window |
 | `WORKER_XREADGROUP_BLOCK_MS` | 5000 | XREADGROUP wait time |
-| `WORKER_XREADGROUP_COUNT` | 10 | Messages per batch |
-| `DB_POOL_SIZE` | 5 | SQLAlchemy pool size |
-| `DB_MAX_OVERFLOW` | 10 | Pool overflow |
+| `WORKER_XREADGROUP_COUNT` | 50 | Messages per batch |
+| `DB_POOL_SIZE` | 50 | SQLAlchemy pool size |
+| `DB_MAX_OVERFLOW` | 50 | Pool overflow |
 | `DB_POOL_RECYCLE` | 300 | Connection recycle (Neon-friendly) |
 | `LOG_FORMAT` | json | `json` or `text` |
 | `ENVIRONMENT` | development | `production` disables `/docs` |
