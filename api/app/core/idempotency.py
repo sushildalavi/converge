@@ -43,6 +43,26 @@ def get_or_create_event(db: Session, payload: EventCreate) -> tuple[Event, bool]
         status="received",
         payload_json=payload.payload,
         metadata_json=payload.metadata,
+        agent_run_id=payload.agent_run_id,
+        step_id=payload.step_id,
+        parent_step_id=payload.parent_step_id,
+        tool_name=payload.tool_name,
+        model_name=payload.model_name,
+        provider_name=payload.provider_name,
+        prompt_hash=payload.prompt_hash,
+        system_prompt_hash=payload.system_prompt_hash,
+        input_tokens=payload.input_tokens,
+        output_tokens=payload.output_tokens,
+        retry_reason=payload.retry_reason,
+        trace_status=payload.trace_status,
+        evaluation_status=payload.evaluation_status,
+        replay_confidence=payload.replay_confidence,
+        original_output_hash=payload.original_output_hash,
+        replayed_output_hash=payload.replayed_output_hash,
+        tool_call_args_hash=payload.tool_call_args_hash,
+        tool_call_result_hash=payload.tool_call_result_hash,
+        structured_output_valid=payload.structured_output_valid,
+        failure_category=payload.failure_category,
         max_attempts=payload.max_attempts,
     )
     db.add(event)
@@ -57,6 +77,4 @@ def get_or_create_event(db: Session, payload: EventCreate) -> tuple[Event, bool]
             )
         ).scalar_one()
         return existing, True
-    db.commit()
-    db.refresh(event)
     return event, False

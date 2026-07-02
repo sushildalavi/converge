@@ -9,8 +9,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from app.core.ai_ops import create_event_outbox, recover_event_outbox
 from app.core.event_backends import append_event_to_backend
 from app.core.idempotency import get_or_create_event
+from app.core.redis_streams import publish_incoming
 from app.core.security import require_api_key
 from app.database import get_db
 from app.models import Event
@@ -33,18 +35,17 @@ def ingest_event(payload: EventCreate, db: DbDep, _auth: RequireKey = None) -> E
 
     if should_publish:
         event.status = "queued"
-        db.add(event)
-        db.commit()
-        db.refresh(event)
+    elif event.status == "received":
+        event.status = "queued"
+    db.add(event)
+    create_event_outbox(db, event)
+    db.commit()
+    db.refresh(event)
+    if should_publish:
         try:
             append_event_to_backend(event, payload)
         except Exception:
             log.exception("failed to publish event %s to backend", event.id)
-    elif event.status == "received":
-        event.status = "queued"
-        db.add(event)
-        db.commit()
-        db.refresh(event)
     result = EventOut.model_validate(event)
     result.duplicate = duplicate
     return result
@@ -83,11 +84,32 @@ def get_event(event_id: UUID, db: DbDep) -> EventOut:
     return EventOut.model_validate(event)
 
 
+@router.post("/api/events/outbox/recover")
+def recover_outbox(db: DbDep, _auth: RequireKey = None) -> dict[str, int]:
+    recovered = recover_event_outbox(db, lambda _stream_name, payload: publish_incoming(str(payload["event_id"])))
+    return {"recovered": len(recovered)}
+
+
 @demo_router.post("/api/demo/generate-workload")
 def generate_workload(
     count: int = Query(default=10, ge=1, le=500),
     _auth: RequireKey = None,
 ) -> dict:
     from app.demo.workload_generator import generate_workload as _gen
-    result = _gen(n=count, base_url="http://localhost:8000")
+    result = _gen(n=count, base_url="http://localhost:8101")
     return result
+
+
+@demo_router.post("/api/demo/generate-ai-workload")
+def generate_ai_workload(
+    count: int = Query(default=3, ge=1, le=50),
+    _auth: RequireKey = None,
+) -> dict:
+    from app.demo.ai_workload_generator import seed_ai_workloads
+    from app.database import SessionLocal
+
+    db = SessionLocal()
+    try:
+        return seed_ai_workloads(db, runs=count)
+    finally:
+        db.close()
