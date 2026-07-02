@@ -1,26 +1,33 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Activity, BarChart3, Layers3, RefreshCcw, Server, ShieldCheck, Workflow, Zap } from "lucide-react";
+import { Activity, Braces, Layers3, RefreshCcw, Server, ShieldCheck, Workflow, Zap, Bot, LayoutDashboard, Cpu } from "lucide-react";
 import { api } from "../api/client";
 import { usePolling } from "../hooks/usePolling";
 import { CommandPalette } from "../components/CommandPalette";
 
 const NAV = [
-  { to: "/app", label: "Recovery Console", icon: BarChart3, end: true },
+  { to: "/app", label: "AI Console", icon: LayoutDashboard, end: true },
   { to: "/app/workers", label: "Workers", icon: Server },
   { to: "/app/streams", label: "Streams", icon: Workflow },
   { to: "/app/replay", label: "Replay / DLQ", icon: Layers3 },
   { to: "/app/convergence", label: "Convergence", icon: ShieldCheck },
-  { to: "/app/chaos", label: "Chaos", icon: Activity },
+  { to: "/app/benchmarks", label: "Benchmarks", icon: Activity },
+  { to: "/app/ai-runs", label: "Agent Runs", icon: Bot },
+  { to: "/app/ai-evals", label: "Evals", icon: Braces },
+  { to: "/app/architecture", label: "Architecture", icon: Cpu },
 ];
 
 const TITLES: Record<string, { title: string; subtitle: string }> = {
-  "/app": { title: "Recovery Console", subtitle: "Live recovery state, convergence signals, and operator actions." },
+  "/app": { title: "AI Operations Console", subtitle: "Live recovery state, convergence signals, and operator actions." },
   "/app/workers": { title: "Worker Health", subtitle: "Heartbeats, stale workers, and active claim state." },
   "/app/streams": { title: "Stream Backlog", subtitle: "Redis pending entries, retry queues, and backlog pressure." },
   "/app/replay": { title: "Replay / DLQ", subtitle: "Dead letters, replay actions, and recovery traceability." },
   "/app/convergence": { title: "Convergence", subtitle: "Proof that the system drained and recovered cleanly." },
-  "/app/chaos": { title: "Chaos Results", subtitle: "Measured benchmark and chaos artifacts from this repo." },
+  "/app/chaos": { title: "Benchmark Explorer", subtitle: "Measured benchmark and chaos artifacts from this repo." },
+  "/app/benchmarks": { title: "Benchmark Explorer", subtitle: "Replay throughput, recovery time, and AI eval proof." },
+  "/app/ai-runs": { title: "Agent Runs", subtitle: "AI traces, step hashes, and replay confidence." },
+  "/app/ai-evals": { title: "AI Evals", subtitle: "Deterministic and judge-backed eval results." },
+  "/app/architecture": { title: "Architecture", subtitle: "Control plane, worker pool, outbox, and trace store." },
   "/app/workflows/:wfId": { title: "Workflow Timeline", subtitle: "Per-workflow event history, attempts, and incident context." },
 };
 
@@ -117,7 +124,7 @@ export function AppShell() {
           </div>
           <div>
             <p className="brand-name">Converge</p>
-            <p className="brand-subtitle">Crash-safe recovery platform</p>
+            <p className="brand-subtitle">AI workflow recovery platform</p>
           </div>
         </div>
 
