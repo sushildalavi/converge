@@ -14,12 +14,15 @@
   --muted:    #a1a1aa;
   --dim:      #71717a;
   --dimmer:   #3f3f46;
-  --accent:   #f59e0b;
-  --accent2:  #fbbf24;
-  --green:    #4ade80;
+  --accent:   #22d3ee;
+  --accent2:  #8b5cf6;
+  --cyan:     #22d3ee;
+  --violet:   #8b5cf6;
+  --emerald:  #34d399;
+  --green:    #34d399;
   --red:      #f87171;
   --blue:     #60a5fa;
-  --orange:   #fb923c;
+  --orange:   #fbbf24;
   --sidebar:  260px;
   --header:   40px;
 }
@@ -29,8 +32,9 @@ html { font-size:13px }
 body {
   min-height: 100vh;
   background:
-    radial-gradient(circle at 12% 0%, rgba(245,158,11,.08), transparent 24%),
-    radial-gradient(circle at 88% 8%, rgba(96,165,250,.08), transparent 18%),
+    radial-gradient(circle at 10% 0%, rgba(34,211,238,.09), transparent 22%),
+    radial-gradient(circle at 88% 8%, rgba(139,92,246,.08), transparent 18%),
+    radial-gradient(circle at 52% 110%, rgba(52,211,153,.06), transparent 22%),
     linear-gradient(180deg, #09090b 0%, #0a0a0b 100%);
   color: var(--text);
   font-family: 'Inter', system-ui, sans-serif;
@@ -1145,7 +1149,8 @@ body::before {
   .artifact-grid,
   .metric-grid-4,
   .metric-grid-6,
-  .architecture-flow {
+  .architecture-flow,
+  .architecture-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -1171,7 +1176,8 @@ body::before {
   .artifact-grid,
   .metric-grid-4,
   .metric-grid-6,
-  .architecture-flow {
+  .architecture-flow,
+  .architecture-grid {
     grid-template-columns: 1fr;
   }
   .console-status {
@@ -1188,4 +1194,148 @@ body::before {
   .landing-footer {
     padding-bottom: 24px;
   }
+}
+
+.page-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.page-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.toolbar-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.panel {
+  background: rgba(18, 18, 22, 0.88);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 14px;
+  box-shadow: 0 24px 50px rgba(0,0,0,.24);
+  backdrop-filter: blur(12px);
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px 10px;
+}
+
+.panel-title {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.panel-copy {
+  color: var(--dim);
+  font-size: 12px;
+  margin-top: 3px;
+}
+
+.panel-chip,
+.toolbar-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.03);
+  padding: 6px 10px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.panel-link,
+.mono-link,
+.back-link,
+.shortcut-link {
+  color: var(--cyan);
+  text-decoration: none;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 11px;
+}
+
+.json-viewer {
+  margin: 0;
+  padding: 16px 18px 18px;
+  max-height: 520px;
+  overflow: auto;
+  background: rgba(0,0,0,.18);
+  color: #dbeafe;
+  font-size: 11px;
+  line-height: 1.6;
+  border-top: 1px solid rgba(255,255,255,.06);
+}
+
+.architecture-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0 18px 18px;
+}
+
+.architecture-node {
+  min-height: 96px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: linear-gradient(180deg, rgba(34,211,238,.08), rgba(139,92,246,.04));
+}
+
+.architecture-index {
+  display: inline-flex;
+  color: var(--cyan);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  margin-bottom: 12px;
+}
+
+.architecture-node p {
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px 18px;
+  color: var(--dim);
+}
+
+.note-row {
+  padding: 12px 14px;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 12px;
+  background: rgba(255,255,255,.03);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.stack-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 18px 18px;
 }
