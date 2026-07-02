@@ -1,61 +1,31 @@
-# Converge Product Demo
+# Product Demo
 
-## What to open
+## Story
 
-- `/` public landing page
-- `/app` recovery console
-- `/app/workers` worker health
-- `/app/streams` Redis stream backlog and retry state
-- `/app/replay` dead letters and replay
-- `/app/convergence` convergence verification
-- `/app/chaos` benchmark and chaos evidence
+Converge is an AI workflow recovery platform. It shows how long-running agent tasks, tool calls, and generic workflows can be replayed, compared, and evaluated after worker interruption, retry failure, or Redis publish failure.
 
-## Demo flow
+## Walkthrough
 
-1. Start at the landing page and explain the product as a crash-safe workflow recovery engine.
-2. Open `/app` and show the live recovery console.
-3. Move to `/app/workers` and point out stale worker detection and heartbeats.
-4. Move to `/app/streams` and show pending entries, retry queue depth, and backlog pressure.
-5. Move to `/app/replay` and replay a dead letter after checking the downstream state.
-6. Move to `/app/convergence` and verify whether the system actually drained.
-7. Finish on `/app/chaos` and quote only the checked-in measured artifacts.
+1. Open `http://localhost:5171`
+2. Open `AI Console`
+3. Seed an AI workload from the command palette or `/app/ai-runs`
+4. Open `/app/ai-runs/:agentRunId`
+5. Open `/app/ai-runs/:agentRunId/compare`
+6. Open `/app/ai-evals`
+7. Open `/app/benchmarks`
+8. Open `/app/replay`
+9. Open `/app/convergence`
 
-## Measured artifacts
+## Preview URLs
 
-These values come from files already committed in the repository.
+- Frontend: `http://localhost:5171`
+- API docs: `http://127.0.0.1:8101/docs`
+- Health: `http://127.0.0.1:8101/health`
 
-- `benchmarks/benchmark_replay_20260701T225501Z.json`
-  - Submitted: 1000 events
-  - Converged: true
-  - Dead letters: 0
-  - Recovery time: 612.29s
-  - End-to-end throughput: 1.63 events/sec
-  - Pending entries after recovery: 0
-- `benchmarks/chaos_replay_20260701T230628Z.json`
-  - Submitted: 100 events
-  - Converged: true
-  - Dead letters: 0
-  - Recovery time: 5.29s
-  - End-to-end throughput: 18.9 events/sec
-  - Pending after recovery: 0
+## What to say
 
-## Honest wording
+- The system keeps a transactional outbox so publish failures after DB commit are recoverable.
+- Agent runs keep step-level hashes, token counts, provider names, trace status, and replay confidence.
+- Evals are deterministic locally, with optional OpenAI or Gemini judges when keys exist.
+- Benchmark and chaos artifacts are written as timestamped JSON and Markdown files under `benchmarks/`.
 
-- Do not claim 100K-event chaos runs unless you can point to a checked-in artifact.
-- Do not claim 3,000+ messages/sec unless you can point to a checked-in artifact.
-- If you generate temporary smoke runs, label them as smoke-scale validation.
-- If the data is too thin, the postmortem generator should return `insufficient_evidence`.
-
-## Local setup
-
-```bash
-docker compose up --build -d
-curl -fsS http://127.0.0.1:18000/health
-curl -fsS http://127.0.0.1:18000/health/ready
-```
-
-## Related docs
-
-- [README](../README.md)
-- [Recovery postmortem architecture](RECOVERY_POSTMORTEM.md)
-- [Portfolio proof](PORTFOLIO_PROOF.md)
