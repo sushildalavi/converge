@@ -42,7 +42,7 @@ export default function Chaos() {
       <FadeUp>
         <div className="page-toolbar">
           <div>
-            <div className="eyebrow">Chaos / Benchmark</div>
+            <div className="eyebrow">Benchmark Explorer</div>
             <h2 className="page-heading">Measured recovery evidence</h2>
             <p className="page-copy">
               These cards are built from checked-in benchmark artifacts. No inflated throughput numbers, no fake
@@ -184,7 +184,7 @@ export default function Chaos() {
         <div className="evidence-grid">
           <div className="evidence-card">
             <AlertTriangle size={14} />
-            <p>Only show the 1000-event replay and 100-event chaos artifacts that are already checked in.</p>
+            <p>Only show the 1000-event replay and 10-event chaos artifacts that are already checked in.</p>
           </div>
           <div className="evidence-card">
             <AlertTriangle size={14} />
@@ -193,6 +193,10 @@ export default function Chaos() {
           <div className="evidence-card">
             <AlertTriangle size={14} />
             <p>Label smoke-scale validation clearly if you generate temporary artifacts for local testing.</p>
+          </div>
+          <div className="evidence-card">
+            <AlertTriangle size={14} />
+            <p>AI eval pass rate and replay confidence should come from the seeded agent traces or a local benchmark run.</p>
           </div>
         </div>
       </div>
