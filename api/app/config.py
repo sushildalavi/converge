@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     ai_timeout_seconds: int = 20
 
     # ── http ─────────────────────────────────────────────
-    cors_origins: str = "http://localhost:5173"
+    cors_origins: str = "http://localhost:5171"
     request_timeout_seconds: int = 30
     event_backend: str = "redis"  # "redis" or "forgelog"
     forgelog_url: str = "http://forgelog:9090"
