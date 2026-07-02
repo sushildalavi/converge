@@ -8,6 +8,11 @@ import DeadLetters from "./pages/DeadLetters";
 import Streams from "./pages/Streams";
 import Convergence from "./pages/Convergence";
 import Chaos from "./pages/Chaos";
+import AgentRuns from "./pages/AgentRuns";
+import TraceComparison from "./pages/TraceComparison";
+import EvalResults from "./pages/EvalResults";
+import Architecture from "./pages/Architecture";
+import PromptTraceViewer from "./pages/PromptTraceViewer";
 import { AppShell } from "./layouts/AppShell";
 import { PageTransition } from "./components/Animated";
 
@@ -46,6 +51,12 @@ export default function App() {
           <Route path="replay" element={<PageTransition><DeadLetters /></PageTransition>} />
           <Route path="convergence" element={<PageTransition><Convergence /></PageTransition>} />
           <Route path="chaos" element={<PageTransition><Chaos /></PageTransition>} />
+          <Route path="benchmarks" element={<PageTransition><Chaos /></PageTransition>} />
+          <Route path="ai-runs" element={<PageTransition><AgentRuns /></PageTransition>} />
+          <Route path="ai-runs/:agentRunId" element={<PageTransition><PromptTraceViewer /></PageTransition>} />
+          <Route path="ai-runs/:agentRunId/compare" element={<PageTransition><TraceComparison /></PageTransition>} />
+          <Route path="ai-evals" element={<PageTransition><EvalResults /></PageTransition>} />
+          <Route path="architecture" element={<PageTransition><Architecture /></PageTransition>} />
           <Route path="workflows/:wfId" element={<PageTransition><WorkflowDetail /></PageTransition>} />
         </Route>
 
