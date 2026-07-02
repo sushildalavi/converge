@@ -1,6 +1,6 @@
-# Converge
+# Converge | Recovery Intelligence & Crash-Safe Replay Platform
 
-Converge is a crash-safe event replay and workflow recovery engine.
+Converge is a crash-safe workflow recovery engine with evidence-grounded replay analysis and optional local postmortem generation.
 
 ## What it does
 
@@ -12,6 +12,7 @@ Converge is a crash-safe event replay and workflow recovery engine.
 - Exposes the system through an API and dashboard
 - Publishes live backlog, retry, replay-latency, and worker health metrics
 - Verifies convergence with explicit replay and recovery reports
+- Generates evidence-grounded recovery postmortems from benchmark, chaos, and convergence evidence
 
 ## Architecture
 
@@ -79,6 +80,29 @@ Local ForgeLog mode:
 docker compose -f docker-compose.yml -f docker-compose.forgelog.yml up --build -d
 python scripts/benchmark_forgelog.py --events 1000
 ```
+
+## Recovery Postmortem Generator
+
+The postmortem workflow is optional and disabled by default.
+
+- Default mode: `AI_PROVIDER=disabled`
+- Fake provider for CI and tests: `AI_PROVIDER=fake`
+- Local Ollama mode: `AI_PROVIDER=ollama`
+- Local model defaults: `OLLAMA_BASE_URL=http://localhost:11434`, `AI_MODEL=llama3.1:8b`, `AI_FALLBACK_MODEL=qwen2.5-coder:7b`, `AI_TIMEOUT_SECONDS=20`
+
+How to use it:
+
+```bash
+python scripts/generate_postmortem.py --artifact benchmarks/benchmark_replay_*.json --workflow-id <workflow_id>
+python scripts/evaluate_postmortem.py
+```
+
+More details:
+
+- Architecture and guardrails: [docs/RECOVERY_POSTMORTEM.md](docs/RECOVERY_POSTMORTEM.md)
+- Existing incident-analysis notes: [docs/AGENTIC_INCIDENT_ANALYSIS.md](docs/AGENTIC_INCIDENT_ANALYSIS.md)
+- The generator is evidence-grounded and returns `insufficient_evidence` when the artifacts are too thin.
+- It does not replace the recovery engine, the dashboard, or the runbook.
 
 ## Portfolio Proof
 

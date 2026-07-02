@@ -1,6 +1,7 @@
 import axios from "axios";
 import type {
   ConvergenceOut, DeadLetterOut, EventOut, IncidentSummaryOut,
+  RecoveryPostmortemOut, RecoveryPostmortemRequest,
   MetricsOut, WorkerOut, WorkflowSummaryOut, WorkflowTimelineOut,
 } from "../types";
 
@@ -37,6 +38,7 @@ export const api = {
   replayDeadLetter: (id: string) => http.post<EventOut>(`/api/deadletters/${id}/replay`).then(r => r.data),
   listWorkers: () => http.get<WorkerOut[]>("/api/workers").then(r => r.data),
   summarizeIncident: (wfId: string) => http.post<IncidentSummaryOut>(`/api/incidents/${wfId}/summarize`).then(r => r.data),
+  generateRecoveryPostmortem: (body: RecoveryPostmortemRequest = {}) => http.post<RecoveryPostmortemOut>("/api/ai/recovery-postmortem", body).then(r => r.data),
   generateWorkload: (count = 30) => http.post<{ workflows: number; events_sent: number; errors: number }>("/api/demo/generate-workload", null, { params: { count } }).then(r => r.data),
   recentEvents: (limit = 40) => http.get<RecentEvent[]>("/api/events/recent", { params: { limit } }).then(r => r.data),
   servicesBreakdown: () => http.get<ServiceBreakdown[]>("/api/insights/services").then(r => r.data),

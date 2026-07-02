@@ -164,3 +164,32 @@ export interface IncidentSummaryOut {
   model_name: string | null;
   created_at: string;
 }
+
+export interface RecoveryTimelineEntry {
+  event: string;
+  impact: string;
+}
+
+export type RecoveryResult = "converged" | "degraded" | "failed" | "insufficient_evidence";
+
+export interface RecoveryPostmortemOut {
+  incident_summary: string;
+  recovery_result: RecoveryResult;
+  timeline: RecoveryTimelineEntry[];
+  evidence: string[];
+  risks: string[];
+  recommended_actions: string[];
+  confidence: number;
+  resume_safe_summary: string;
+}
+
+export interface RecoveryPostmortemRequest {
+  workflow_id?: string | null;
+  artifact_paths?: string[];
+  workflow_snapshot?: Record<string, unknown> | null;
+  convergence_snapshot?: Record<string, unknown> | null;
+  worker_snapshot?: Record<string, unknown> | null;
+  provider?: string | null;
+  model?: string | null;
+  include_live_snapshot?: boolean;
+}

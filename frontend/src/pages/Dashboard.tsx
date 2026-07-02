@@ -15,6 +15,7 @@ import { EventStatusBadge } from "../components/EventStatusBadge";
 import { LiveFeed } from "../components/LiveFeed";
 import { AnimatedNumber, Skeleton, FadeUp, Stagger, SI } from "../components/Animated";
 import { usePolling } from "../hooks/usePolling";
+import type { RecoveryPostmortemOut, RecoveryResult } from "../types";
 
 const pct = (n:number,d:number) => d===0?"–":`${((n/d)*100).toFixed(1)}%`;
 const fmtMs = (v:number|null) => v==null?"–":v<1000?`${Math.round(v)}ms`:`${(v/1000).toFixed(2)}s`;
@@ -44,6 +45,13 @@ const SVC_LABELS: Record<string,string> = {
   "fulfillment-service":  "Fulfillment",
 };
 
+const PM_COLOR: Record<RecoveryResult, string> = {
+  converged: "var(--green)",
+  degraded: "var(--orange)",
+  failed: "var(--red)",
+  insufficient_evidence: "var(--dim)",
+};
+
 export default function Dashboard() {
   const mLoad  = useCallback(()=>api.getMetrics(),[]);
   const wLoad  = useCallback(()=>api.listWorkflows(40),[]);
@@ -62,6 +70,8 @@ export default function Dashboard() {
   const { data:etypes } = usePolling(tLoad,10000);
 
   const [gen, setGen] = useState(false);
+  const [postmortem, setPostmortem] = useState<RecoveryPostmortemOut | null>(null);
+  const [postmortemLoading, setPostmortemLoading] = useState(false);
 
   const hist     = useRef<HistSnap[]>([]);
   const rateHist = useRef<RateSnap[]>([]);
@@ -88,6 +98,8 @@ export default function Dashboard() {
     return Math.round((d/((sl.length-1)*4))*60);
   })();
 
+  const latestWorkflowId = wf?.[0]?.workflow_id ?? null;
+
   const generate = async () => {
     setGen(true);
     try {
@@ -96,6 +108,24 @@ export default function Dashboard() {
       setTimeout(()=>{ refM(); refWf() },800);
     } catch { toast.error("Generation failed"); }
     finally { setGen(false); }
+  };
+
+  const analyzeRecovery = async () => {
+    setPostmortemLoading(true);
+    try {
+      const result = await api.generateRecoveryPostmortem({
+        workflow_id: latestWorkflowId,
+        include_live_snapshot: true,
+      });
+      setPostmortem(result);
+      toast.success("Recovery postmortem generated", {
+        description: result.recovery_result,
+      });
+    } catch {
+      toast.error("Recovery postmortem failed");
+    } finally {
+      setPostmortemLoading(false);
+    }
   };
 
   const latData = lat ? lat.bins.map((b,i)=>({ bin:b, count:lat.counts[i] })) : [];
@@ -220,6 +250,106 @@ export default function Dashboard() {
           <div style={{ padding:"0 14px 12px", fontSize:11, color:"var(--dim)" }}>
             <span style={{ fontWeight:600, color:"var(--text)" }}>Open issues:</span>{" "}
             {c.convergence_issues.join(" · ")}
+          </div>
+        )}
+      </div>
+
+      <div className="card" style={{ overflow:"hidden" }}>
+        <div style={{ padding:"10px 14px", borderBottom:"1px solid var(--border)", display:"flex", justifyContent:"space-between", alignItems:"center", gap:12 }}>
+          <div>
+            <p style={{ fontSize:12, fontWeight:600, color:"var(--text)" }}>Recovery Postmortem</p>
+            <p style={{ fontSize:10, color:"var(--dim)", marginTop:2 }}>Evidence-grounded analysis from live convergence and the latest workflow</p>
+          </div>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            {latestWorkflowId && (
+              <span className="mono" style={{ fontSize:10, color:"var(--dimmer)" }}>
+                {latestWorkflowId}
+              </span>
+            )}
+            <motion.button className="btn-outline" onClick={analyzeRecovery} disabled={postmortemLoading} whileTap={{ scale: .93 }}>
+              {postmortemLoading ? <RefreshCw size={11} className="animate-spin" /> : <Activity size={11} />}
+              {postmortemLoading ? "Analysing…" : "Generate"}
+            </motion.button>
+          </div>
+        </div>
+        {!postmortem ? (
+          <div style={{ padding:"12px 14px", color:"var(--dimmer)", fontSize:11 }}>
+            Run the analyzer to see the incident summary, evidence, risks, and recommended actions.
+          </div>
+        ) : (
+          <div style={{ display:"grid", gridTemplateColumns:"minmax(0,1.5fr) minmax(260px,.9fr)", gap:0 }}>
+            <div style={{ padding:"12px 14px", borderRight:"1px solid var(--border)" }}>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, marginBottom:10 }}>
+                <div>
+                  <p style={{ fontSize:9.5, fontWeight:600, color:"var(--dim)", textTransform:"uppercase", letterSpacing:".07em" }}>Recovery Result</p>
+                  <p className="mono" style={{ fontSize:16, fontWeight:700, color:PM_COLOR[postmortem.recovery_result], marginTop:4 }}>
+                    {postmortem.recovery_result}
+                  </p>
+                </div>
+                <div style={{ minWidth:88, textAlign:"right" }}>
+                  <p style={{ fontSize:9.5, fontWeight:600, color:"var(--dim)", textTransform:"uppercase", letterSpacing:".07em" }}>Confidence</p>
+                  <p className="mono" style={{ fontSize:16, fontWeight:700, color:"var(--text)", marginTop:4 }}>
+                    {(postmortem.confidence * 100).toFixed(0)}%
+                  </p>
+                </div>
+              </div>
+              <div style={{ height:4, borderRadius:999, background:"var(--raised)", overflow:"hidden", marginBottom:10 }}>
+                <div style={{ width:`${postmortem.confidence * 100}%`, height:"100%", background:PM_COLOR[postmortem.recovery_result], borderRadius:999 }} />
+              </div>
+              <p style={{ fontSize:12, color:"var(--muted)", lineHeight:1.6 }}>{postmortem.incident_summary}</p>
+
+              <div style={{ marginTop:14 }}>
+                <p style={{ fontSize:9.5, fontWeight:600, color:"var(--dim)", textTransform:"uppercase", letterSpacing:".07em", marginBottom:8 }}>Timeline</p>
+                <div style={{ display:"grid", gap:8 }}>
+                  {postmortem.timeline.map((item, idx) => (
+                    <div key={`${item.event}-${idx}`} style={{ padding:"8px 10px", background:"var(--raised)", borderRadius:4 }}>
+                      <p style={{ fontSize:11, fontWeight:600, color:"var(--text)" }}>{item.event}</p>
+                      <p style={{ fontSize:11, color:"var(--dim)", marginTop:2, lineHeight:1.5 }}>{item.impact}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginTop:14 }}>
+                <p style={{ fontSize:9.5, fontWeight:600, color:"var(--dim)", textTransform:"uppercase", letterSpacing:".07em", marginBottom:8 }}>Evidence</p>
+                <div style={{ display:"grid", gap:6 }}>
+                  {postmortem.evidence.map((item, idx) => (
+                    <div key={`${idx}-${item.slice(0,12)}`} style={{ fontSize:11, color:"var(--muted)", lineHeight:1.5 }}>
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ padding:"12px 14px" }}>
+              <div>
+                <p style={{ fontSize:9.5, fontWeight:600, color:"var(--dim)", textTransform:"uppercase", letterSpacing:".07em", marginBottom:8 }}>Risks</p>
+                <div style={{ display:"grid", gap:6 }}>
+                  {postmortem.risks.map((item, idx) => (
+                    <div key={`${idx}-${item.slice(0,12)}`} style={{ fontSize:11, color:"var(--muted)", lineHeight:1.5 }}>
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginTop:14 }}>
+                <p style={{ fontSize:9.5, fontWeight:600, color:"var(--dim)", textTransform:"uppercase", letterSpacing:".07em", marginBottom:8 }}>Recommended Actions</p>
+                <div style={{ display:"grid", gap:6 }}>
+                  {postmortem.recommended_actions.map((item, idx) => (
+                    <div key={`${idx}-${item.slice(0,12)}`} style={{ fontSize:11, color:"var(--muted)", lineHeight:1.5 }}>
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginTop:14, padding:"10px 12px", border:"1px solid var(--border)", borderRadius:4, background:"var(--raised)" }}>
+                <p style={{ fontSize:9.5, fontWeight:600, color:"var(--dim)", textTransform:"uppercase", letterSpacing:".07em", marginBottom:6 }}>Resume Safety</p>
+                <p style={{ fontSize:11, color:"var(--muted)", lineHeight:1.5 }}>{postmortem.resume_safe_summary}</p>
+              </div>
+            </div>
           </div>
         )}
       </div>

@@ -1,6 +1,7 @@
 # Agentic Incident Analysis
 
 The Converge incident recovery agent is a deterministic analysis wrapper around the benchmark artifact format.
+For the structured recovery postmortem generator, see [docs/RECOVERY_POSTMORTEM.md](RECOVERY_POSTMORTEM.md).
 
 ## Workflow
 

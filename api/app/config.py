@@ -35,6 +35,11 @@ class Settings(BaseSettings):
 
     # ── ai ───────────────────────────────────────────────
     anthropic_api_key: str = ""
+    ai_provider: str = "disabled"
+    ollama_base_url: str = "http://localhost:11434"
+    ai_model: str = "llama3.1:8b"
+    ai_fallback_model: str = "qwen2.5-coder:7b"
+    ai_timeout_seconds: int = 20
 
     # ── http ─────────────────────────────────────────────
     cors_origins: str = "http://localhost:5173"

@@ -10,6 +10,11 @@ from app.core.ai_insights import (
     recommend_retry_policy,
     root_cause_analysis,
 )
+from app.core.recovery_postmortem import (
+    RecoveryPostmortemOut,
+    RecoveryPostmortemRequest,
+    generate_recovery_postmortem,
+)
 from app.database import get_db
 
 router = APIRouter(tags=["ai"])
@@ -32,3 +37,9 @@ def retry_recommendations(db: DbDep) -> list[dict[str, Any]]:
 def workflow_root_cause(workflow_id: str, db: DbDep) -> dict[str, Any]:
     """Identify probable root cause for a failing workflow + similar past patterns."""
     return root_cause_analysis(db, workflow_id)
+
+
+@router.post("/api/ai/recovery-postmortem")
+def recovery_postmortem(db: DbDep, request: RecoveryPostmortemRequest | None = None) -> RecoveryPostmortemOut:
+    """Generate an evidence-grounded recovery postmortem from benchmark/chaos/live evidence."""
+    return generate_recovery_postmortem(db, request)
