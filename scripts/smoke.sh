@@ -13,7 +13,7 @@ docker compose up -d backend worker
 sleep 8
 
 echo "→ health check..."
-BASE_URL="${REPLAYFORGE_BASE_URL:-http://127.0.0.1:18000}"
+BASE_URL="${REPLAYFORGE_BASE_URL:-http://127.0.0.1:8101}"
 
 curl -fsS "$BASE_URL/health" | grep '"ok"'
 

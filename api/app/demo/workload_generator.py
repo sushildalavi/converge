@@ -10,7 +10,7 @@ from app.demo.checkout_simulator import simulate_checkout_events
 log = logging.getLogger(__name__)
 
 
-def generate_workload(n: int, base_url: str = "http://localhost:8000") -> dict:
+def generate_workload(n: int, base_url: str = "http://localhost:8101") -> dict:
     results = {"workflows": n, "events_sent": 0, "errors": 0}
     with httpx.Client(base_url=base_url, timeout=10.0) as client:
         for _ in range(n):

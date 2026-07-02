@@ -6,8 +6,8 @@ const { execSync } = require('child_process');
 const OUT = path.resolve(__dirname, '../docs/screenshots');
 fs.mkdirSync(OUT, { recursive: true });
 
-const BASE = 'http://localhost:5173';
-const API_BASE = process.env.REPLAYFORGE_BASE_URL || 'http://127.0.0.1:18000';
+const BASE = 'http://localhost:5171';
+const API_BASE = process.env.REPLAYFORGE_BASE_URL || 'http://127.0.0.1:8101';
 const WAIT_MS = 4000;
 
 async function seedWorkload(count = 40) {

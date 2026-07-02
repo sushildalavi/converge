@@ -26,7 +26,7 @@ from scripts.replay_harness import (
     wait_for_terminal_events,
 )
 
-DEFAULT_BASE_URL = os.getenv("REPLAYFORGE_BASE_URL", "http://127.0.0.1:18000")
+DEFAULT_BASE_URL = os.getenv("REPLAYFORGE_BASE_URL", "http://127.0.0.1:8101")
 
 
 @dataclass(frozen=True)
@@ -203,6 +203,7 @@ async def run_chaos(args: argparse.Namespace) -> dict[str, Any] | None:
         event_ids,
         submitted_at,
         timeout_seconds=args.timeout_seconds,
+        batch_size=50,
     )
     recovery = await wait_for_convergence(args.base_url, timeout_seconds=args.timeout_seconds)
     await killer

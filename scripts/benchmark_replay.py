@@ -24,12 +24,13 @@ from scripts.replay_harness import (
     wait_for_terminal_events,
 )
 
-DEFAULT_BASE_URL = os.getenv("REPLAYFORGE_BENCHMARK_BASE_URL", "http://127.0.0.1:18000")
+DEFAULT_BASE_URL = os.getenv("REPLAYFORGE_BENCHMARK_BASE_URL", "http://127.0.0.1:8101")
 
 
 @dataclass(frozen=True)
 class BenchmarkOutcome:
     status: str
+    mode: str
     events: int
     workers: int
     concurrency: int
@@ -52,9 +53,17 @@ class BenchmarkOutcome:
     p50_e2e_ms: float | None
     p95_e2e_ms: float | None
     p99_e2e_ms: float | None
+    eval_enabled: bool
+    trace_comparison_enabled: bool
+    ai_eval_pass_rate: float | None
+    replay_confidence_p50: float | None
+    replay_confidence_p95: float | None
     command: str
     timestamp: str
     base_url: str
+    redis_stream_batch_size: int
+    db_pool_size: int
+    payload_size: int
     note: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
@@ -74,6 +83,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--pending", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--reset", action="store_true", help="Recreate the compose stack before benchmarking.")
+    parser.add_argument("--mode", choices=["generic", "ai-agent"], default="generic")
+    parser.add_argument("--payload-size", type=int, default=256)
+    parser.add_argument("--redis-stream-batch-size", type=int, default=50)
+    parser.add_argument("--db-pool-size", type=int, default=50)
+    parser.add_argument("--eval-enabled", action="store_true")
+    parser.add_argument("--trace-comparison-enabled", action="store_true")
     return parser
 
 
@@ -84,26 +99,62 @@ def _command_line(args: argparse.Namespace) -> str:
         f"--workers {args.workers}",
         f"--concurrency {args.concurrency}",
         f"--base-url {args.base_url}",
+        f"--mode {args.mode}",
     ]
     return " ".join(parts)
 
 
-def _event_payload(index: int) -> dict[str, Any]:
-    return {
+def _payload_body(index: int, size: int) -> dict[str, Any]:
+    return {"sequence": index, "kind": "benchmark", "blob": "x" * max(0, size - 48)}
+
+
+def _event_payload(index: int, *, mode: str, payload_size: int) -> dict[str, Any]:
+    workflow_id = f"{mode}-benchmark-{uuid4().hex[:10]}"
+    payload = {
         "application_name": "converge-benchmark",
-        "workflow_id": f"benchmark-{uuid4().hex[:10]}",
+        "workflow_id": workflow_id,
         "event_type": "benchmark.event",
         "service_name": f"service-{index % 4}",
         "idempotency_key": uuid4().hex,
-        "payload": {"sequence": index, "kind": "benchmark"},
-        "metadata": {"benchmark": True, "sequence": index},
+        "payload": _payload_body(index, payload_size),
+        "metadata": {"benchmark": True, "sequence": index, "mode": mode},
         "max_attempts": 4,
     }
+    if mode == "ai-agent":
+        payload.update(
+            {
+                "workflow_id": workflow_id,
+                "event_type": f"agent.{['retrieve', 'summarize', 'extract', 'validate'][index % 4]}",
+                "service_name": "ai-agent",
+                "agent_run_id": f"agent-run-{workflow_id}",
+                "step_id": f"step-{index}",
+                "parent_step_id": f"step-{index - 1}" if index > 0 else None,
+                "tool_name": ["retrieval.search", "llm.summarize", "tool.extract", "schema.validate"][index % 4],
+                "model_name": ["gpt-4o-mini", "gpt-4o-mini", "qwen2.5-coder:7b", "fake-judge"][index % 4],
+                "provider_name": ["openai", "openai", "fake", "fake"][index % 4],
+                "prompt_hash": uuid4().hex,
+                "system_prompt_hash": uuid4().hex,
+                "input_tokens": 100 + index,
+                "output_tokens": 50 + (index % 7),
+                "retry_reason": "schema_validation_retry" if index % 11 == 0 else None,
+                "trace_status": "recorded" if index % 7 else "replayed",
+                "evaluation_status": "complete" if index % 5 else "warn",
+                "replay_confidence": 0.9 if index % 5 else 0.71,
+                "original_output_hash": uuid4().hex,
+                "replayed_output_hash": uuid4().hex,
+                "tool_call_args_hash": uuid4().hex,
+                "tool_call_result_hash": uuid4().hex,
+                "structured_output_valid": index % 6 != 0,
+                "failure_category": "schema_validation" if index % 11 == 0 else None,
+            }
+        )
+    return payload
 
 
 def _pending_artifact(args: argparse.Namespace, note: str) -> dict[str, Any]:
     return BenchmarkOutcome(
         status="pending",
+        mode=args.mode,
         events=args.events,
         workers=args.workers,
         concurrency=args.concurrency,
@@ -126,9 +177,17 @@ def _pending_artifact(args: argparse.Namespace, note: str) -> dict[str, Any]:
         p50_e2e_ms=None,
         p95_e2e_ms=None,
         p99_e2e_ms=None,
+        eval_enabled=bool(args.eval_enabled),
+        trace_comparison_enabled=bool(args.trace_comparison_enabled),
+        ai_eval_pass_rate=None,
+        replay_confidence_p50=None,
+        replay_confidence_p95=None,
         command=_command_line(args),
         timestamp=datetime.now(timezone.utc).isoformat(),
         base_url=args.base_url,
+        redis_stream_batch_size=args.redis_stream_batch_size,
+        db_pool_size=args.db_pool_size,
+        payload_size=args.payload_size,
         note=note,
     ).to_dict()
 
@@ -150,7 +209,7 @@ async def run_benchmark(args: argparse.Namespace) -> dict[str, Any] | None:
 
     await wait_for_ready(args.base_url, timeout_seconds=args.timeout_seconds)
 
-    payloads = [_event_payload(i) for i in range(args.events)]
+    payloads = [_event_payload(i, mode=args.mode, payload_size=args.payload_size) for i in range(args.events)]
     start = asyncio.get_running_loop().time()
     submissions = await submit_events(
         args.base_url,
@@ -172,16 +231,32 @@ async def run_benchmark(args: argparse.Namespace) -> dict[str, Any] | None:
         event_ids,
         submitted_at,
         timeout_seconds=args.timeout_seconds,
+        batch_size=args.redis_stream_batch_size,
     )
     end = asyncio.get_running_loop().time()
 
     convergence = await wait_for_convergence(args.base_url, timeout_seconds=args.timeout_seconds)
     workers = await fetch_json(args.base_url, "/api/workers")
+    ai_runs: list[dict[str, Any]] = []
+    ai_evals: list[dict[str, Any]] = []
+    if args.mode == "ai-agent" or args.eval_enabled or args.trace_comparison_enabled:
+        try:
+            raw_runs = await fetch_json(args.base_url, "/api/ai/agent-runs")
+            ai_runs = raw_runs if isinstance(raw_runs, list) else []
+        except Exception:
+            ai_runs = []
+        try:
+            raw_evals = await fetch_json(args.base_url, "/api/ai/evals")
+            ai_evals = raw_evals if isinstance(raw_evals, list) else []
+        except Exception:
+            ai_evals = []
 
     completed = sum(1 for t in terminal if t.status == "succeeded")
     dead_letters = sum(1 for t in terminal if t.status == "dead_lettered")
     failures = sum(1 for t in terminal if t.status == "failed")
     e2e_latencies = [t.e2e_ms for t in terminal if t.status != "timeout"]
+    replay_confidences = [float(run.get("replay_confidence", 0.0)) for run in ai_runs if isinstance(run, dict)]
+    eval_scores = [float(result.get("score", 0.0)) for result in ai_evals if isinstance(result, dict)]
 
     ingest_seconds = max(ingest_done - start, 1e-9)
     recovery_seconds = max(end - start, 1e-9)
@@ -210,6 +285,14 @@ async def run_benchmark(args: argparse.Namespace) -> dict[str, Any] | None:
         "p50_e2e_ms": _percentile(e2e_latencies, 50),
         "p95_e2e_ms": _percentile(e2e_latencies, 95),
         "p99_e2e_ms": _percentile(e2e_latencies, 99),
+        "eval_enabled": bool(args.eval_enabled),
+        "trace_comparison_enabled": bool(args.trace_comparison_enabled),
+        "ai_eval_pass_rate": round(sum(1 for score in eval_scores if score >= 0.75) / len(eval_scores), 3) if eval_scores else None,
+        "replay_confidence_p50": _percentile(replay_confidences, 50),
+        "replay_confidence_p95": _percentile(replay_confidences, 95),
+        "redis_stream_batch_size": args.redis_stream_batch_size,
+        "db_pool_size": args.db_pool_size,
+        "payload_size": args.payload_size,
     }
 
 
@@ -232,6 +315,7 @@ def _render_markdown(artifact: dict[str, Any]) -> str:
         [
             "## Results",
             "",
+            f"- mode: {artifact['mode']}",
             f"- submitted: {artifact['submitted']}",
             f"- completed: {artifact['completed']}",
             f"- failed: {artifact['failed']}",
@@ -251,6 +335,14 @@ def _render_markdown(artifact: dict[str, Any]) -> str:
             f"- p50 e2e ms: {artifact['p50_e2e_ms']}",
             f"- p95 e2e ms: {artifact['p95_e2e_ms']}",
             f"- p99 e2e ms: {artifact['p99_e2e_ms']}",
+            f"- eval enabled: {artifact['eval_enabled']}",
+            f"- trace comparison enabled: {artifact['trace_comparison_enabled']}",
+            f"- AI eval pass rate: {artifact['ai_eval_pass_rate']}",
+            f"- replay confidence p50: {artifact['replay_confidence_p50']}",
+            f"- replay confidence p95: {artifact['replay_confidence_p95']}",
+            f"- redis stream batch size: {artifact['redis_stream_batch_size']}",
+            f"- db pool size: {artifact['db_pool_size']}",
+            f"- payload size: {artifact['payload_size']}",
         ]
     )
     return "\n".join(lines)
@@ -275,6 +367,7 @@ def main() -> None:
         else:
             artifact = BenchmarkOutcome(
                 status="measured",
+                mode=live["mode"],
                 events=args.events,
                 workers=live["workers"],
                 concurrency=args.concurrency,
@@ -297,9 +390,17 @@ def main() -> None:
                 p50_e2e_ms=live["p50_e2e_ms"],
                 p95_e2e_ms=live["p95_e2e_ms"],
                 p99_e2e_ms=live["p99_e2e_ms"],
+                eval_enabled=live["eval_enabled"],
+                trace_comparison_enabled=live["trace_comparison_enabled"],
+                ai_eval_pass_rate=live["ai_eval_pass_rate"],
+                replay_confidence_p50=live["replay_confidence_p50"],
+                replay_confidence_p95=live["replay_confidence_p95"],
                 command=_command_line(args),
                 timestamp=datetime.now(timezone.utc).isoformat(),
                 base_url=args.base_url,
+                redis_stream_batch_size=live["redis_stream_batch_size"],
+                db_pool_size=live["db_pool_size"],
+                payload_size=live["payload_size"],
             ).to_dict()
 
     json_path.write_text(json.dumps(artifact, indent=2, sort_keys=True) + "\n", encoding="utf-8")
