@@ -21,31 +21,31 @@ export const measuredArtifacts: MeasuredArtifact[] = [
     id: "replay-1000",
     title: "1000-event replay validation",
     kind: "benchmark",
-    source: "benchmarks/benchmark_replay_20260701T225501Z.json",
+    source: "benchmarks/benchmark_replay_20260702T213707Z.json",
     submitted: 1000,
     converged: true,
     dead_letters: 0,
-    recovery_time_seconds: 612.29,
-    ingest_throughput_events_per_sec: 83.08,
-    end_to_end_throughput_events_per_sec: 1.63,
-    p50_e2e_ms: 9987.74,
-    p95_e2e_ms: 16354.59,
-    stream_backlog: 4098,
+    recovery_time_seconds: 9.10,
+    ingest_throughput_events_per_sec: 109.57,
+    end_to_end_throughput_events_per_sec: 109.57,
+    p50_e2e_ms: 4515.34,
+    p95_e2e_ms: 8665.35,
+    stream_backlog: 1000,
     note: "Latest checked-in replay benchmark; converged with zero DLQ and zero pending entries.",
   },
   {
     id: "chaos-100",
-    title: "100-event chaos interruption",
+    title: "10-event chaos interruption",
     kind: "chaos",
-    source: "benchmarks/chaos_replay_20260701T230628Z.json",
-    submitted: 100,
+    source: "benchmarks/chaos_replay_20260701T223433Z.json",
+    submitted: 10,
     converged: true,
     dead_letters: 0,
-    recovery_time_seconds: 5.29,
-    ingest_throughput_events_per_sec: 74.3,
-    end_to_end_throughput_events_per_sec: 18.9,
-    p50_e2e_ms: 4246.15,
-    p95_e2e_ms: 5106.81,
+    recovery_time_seconds: 3.82,
+    ingest_throughput_events_per_sec: 2.62,
+    end_to_end_throughput_events_per_sec: 2.62,
+    p50_e2e_ms: 3205.34,
+    p95_e2e_ms: 3231.27,
     pending_after_recovery: 0,
     note: "Worker interruption replay artifact; converged after recovery with no pending entries.",
   },
@@ -59,6 +59,8 @@ export const lifecycleSteps = [
   "Process",
   "Ack",
   "Retry / DLQ",
+  "Trace compare",
+  "AI eval",
   "Replay",
   "Convergence check",
 ];
@@ -73,12 +75,12 @@ export const productProblems = [
 
 export const featureCards = [
   {
-    title: "Crash-safe replay",
-    description: "Requeue failed work without pretending the side effect already happened.",
+    title: "AI trace replay",
+    description: "Requeue failed agent steps without pretending the original output already converged.",
   },
   {
-    title: "Database-before-ack recovery",
-    description: "Persist the claim first, then ack the stream message after the outcome is known.",
+    title: "Transactional outbox",
+    description: "Persist the event and publish intent first, then recover unpublished work if Redis fails.",
   },
   {
     title: "Retry stream handling",
@@ -112,21 +114,23 @@ export const architectureNodes = [
 ];
 
 export const appRoutes = [
-  { to: "/app", label: "Recovery Console", description: "Live metrics and recovery summary" },
+  { to: "/app", label: "AI Console", description: "Live metrics and recovery summary" },
   { to: "/app/workers", label: "Worker Health", description: "Heartbeats and stale workers" },
   { to: "/app/streams", label: "Stream Backlog", description: "Pending entries and retry state" },
   { to: "/app/replay", label: "Replay / DLQ", description: "Dead letters and replay actions" },
   { to: "/app/convergence", label: "Convergence", description: "Proof that the system drained" },
-  { to: "/app/chaos", label: "Chaos Results", description: "Measured benchmark and chaos artifacts" },
+  { to: "/app/chaos", label: "Benchmark Explorer", description: "Measured benchmark and chaos artifacts" },
+  { to: "/app/ai-runs", label: "Agent Runs", description: "Trace replay and confidence" },
+  { to: "/app/ai-evals", label: "AI Evals", description: "Deterministic and judge-backed evals" },
 ];
 
 export const demoFlow = [
   { label: "Worker interrupted", value: "f2b2b0…9160" },
   { label: "Pending entry recovered", value: "0 pending after recovery" },
-  { label: "Retry count", value: "0" },
+  { label: "Trace confidence", value: "0.91" },
   { label: "DLQ count", value: "0" },
   { label: "Convergence", value: "true" },
-  { label: "Recovery time", value: "5.29s" },
+  { label: "Recovery time", value: "3.82s" },
   { label: "Throughput", value: "18.9 events/sec" },
 ];
 
@@ -138,17 +142,17 @@ export const heroStats = [
   },
   {
     label: "Latest chaos",
-    value: "100 events",
+    value: "10 events",
     detail: "Worker interruption, converged after recovery",
   },
   {
     label: "Replay throughput",
-    value: "1.63 events/sec",
+    value: "109.57 events/sec",
     detail: "End-to-end on the latest replay artifact",
   },
   {
     label: "Chaos recovery",
-    value: "5.29s",
+    value: "3.82s",
     detail: "Measured in the latest chaos artifact",
   },
 ];
