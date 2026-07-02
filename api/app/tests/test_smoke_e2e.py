@@ -6,6 +6,7 @@ Requires: docker compose up -d (all services running)
 """
 import time
 import os
+from uuid import uuid4
 
 import httpx
 import pytest
@@ -13,21 +14,15 @@ import pytest
 BASE = os.getenv("REPLAYFORGE_BASE_URL", "http://127.0.0.1:18000")
 
 
-@pytest.mark.e2e
-def test_health():
-    r = httpx.get(f"{BASE}/health", timeout=5)
-    assert r.status_code == 200
-    assert r.json()["status"] == "ok"
-
-
-@pytest.mark.e2e
-def test_ingest_and_idempotency():
+@pytest.fixture(scope="module")
+def smoke_case():
+    workflow_id = f"smoke-wf-{uuid4().hex[:8]}"
     payload = {
-        "application_name": "smoke-test",
-        "workflow_id": "smoke-wf-001",
+        "application_name": f"smoke-test-{uuid4().hex[:8]}",
+        "workflow_id": workflow_id,
         "event_type": "checkout.started",
         "service_name": "web",
-        "idempotency_key": "smoke-wf-001_checkout.started",
+        "idempotency_key": f"{workflow_id}_checkout.started",
         "payload": {},
     }
     r1 = httpx.post(f"{BASE}/api/events", json=payload, timeout=5)
@@ -38,6 +33,23 @@ def test_ingest_and_idempotency():
     assert r2.status_code == 201
     assert r2.json()["duplicate"] is True
     assert r1.json()["id"] == r2.json()["id"]
+    return {
+        "workflow_id": workflow_id,
+        "event_id": r1.json()["id"],
+    }
+
+
+@pytest.mark.e2e
+def test_health():
+    r = httpx.get(f"{BASE}/health", timeout=5)
+    assert r.status_code == 200
+    assert r.json()["status"] == "ok"
+
+
+@pytest.mark.e2e
+def test_ingest_and_idempotency(smoke_case):
+    assert smoke_case["workflow_id"].startswith("smoke-wf-")
+    assert smoke_case["event_id"]
 
 
 @pytest.mark.e2e
@@ -58,8 +70,8 @@ def test_workload_and_metrics():
 
 
 @pytest.mark.e2e
-def test_workflow_timeline():
-    wf_id = "smoke-wf-001"
+def test_workflow_timeline(smoke_case):
+    wf_id = smoke_case["workflow_id"]
     r = httpx.get(f"{BASE}/api/workflows/{wf_id}/timeline", timeout=5)
     assert r.status_code == 200
     body = r.json()
@@ -69,9 +81,9 @@ def test_workflow_timeline():
 
 
 @pytest.mark.e2e
-def test_incident_summary_template():
+def test_incident_summary_template(smoke_case):
     # uses template (no API key in test env)
-    wf_id = "smoke-wf-001"
+    wf_id = smoke_case["workflow_id"]
     r = httpx.post(f"{BASE}/api/incidents/{wf_id}/summarize", timeout=10)
     assert r.status_code == 200
     body = r.json()

@@ -18,6 +18,7 @@ import { usePolling } from "../hooks/usePolling";
 
 const pct = (n:number,d:number) => d===0?"–":`${((n/d)*100).toFixed(1)}%`;
 const fmtMs = (v:number|null) => v==null?"–":v<1000?`${Math.round(v)}ms`:`${(v/1000).toFixed(2)}s`;
+const fmtSec = (v:number|null) => v==null?"–":v<60?`${v.toFixed(1)}s`:`${(v/60).toFixed(1)}m`;
 const fmtRate = (v:number|null) => v==null ? "–" : `${v.toFixed(1)}/s`;
 const ago = (iso:string|null) => {
   if(!iso) return "–";
@@ -163,7 +164,7 @@ export default function Dashboard() {
           { label:"Retry queue", value:m?.retry_queue_depth ?? null, color:"var(--orange)", mono:true },
           { label:"Incoming pending", value:m?.incoming_pending ?? null, color:"var(--muted)", mono:true },
           { label:"Retry pending", value:m?.retry_pending ?? null, color:"var(--muted)", mono:true },
-          { label:"Replay latency", value:m?.replay_latency_ms ?? null, color:"var(--blue)", mono:false },
+          { label:"Recovery time", value:m?.replay_latency_ms ?? null, color:"var(--blue)", mono:false },
         ].map((s,i,arr)=>(
           <div key={s.label} style={{ padding:"10px 12px",
             borderRight: i<arr.length-1 ? "1px solid var(--border)" : "none" }}>
@@ -194,8 +195,13 @@ export default function Dashboard() {
         <div style={{ display:"grid", gridTemplateColumns:"repeat(6, 1fr)", gap:0 }}>
           {[
             { label:"State", value:c?.convergence_state ?? null, color:c?.converged ? "var(--green)" : "var(--orange)", mono:false },
+            { label:"Submitted", value:c?.total_events ?? null, color:"var(--muted)", mono:true },
+            { label:"Processed", value:c?.processed_events ?? null, color:"var(--green)", mono:true },
             { label:"Pending", value:c?.pending_events ?? null, color:"var(--orange)", mono:true },
             { label:"Backlog", value:c?.stream_backlog ?? null, color:"var(--muted)", mono:true },
+            { label:"DLQ", value:c?.dead_lettered_events ?? null, color:c?.dead_lettered_events ? "var(--red)" : "var(--muted)", mono:true },
+            { label:"Stale workers", value:c?.stale_workers ?? null, color:c?.stale_workers ? "var(--orange)" : "var(--muted)", mono:true },
+            { label:"Heartbeat age", value:c?.worker_heartbeat_age_seconds ?? null, color:"var(--dim)", mono:false },
             { label:"Orphans", value:c?.orphaned_records ?? null, color:c?.orphaned_records ? "var(--red)" : "var(--muted)", mono:true },
             { label:"Dup sidefx", value:c?.duplicate_side_effects ?? null, color:c?.duplicate_side_effects ? "var(--red)" : "var(--muted)", mono:true },
             { label:"Recent fails", value:c?.recent_failures ?? null, color:"var(--dim)", mono:true },
@@ -203,7 +209,9 @@ export default function Dashboard() {
             <div key={s.label} style={{ padding:"10px 12px", borderRight: i<arr.length-1 ? "1px solid var(--border)" : "none" }}>
               <p style={{ fontSize:9.5, fontWeight:600, color:"var(--dim)", textTransform:"uppercase", letterSpacing:".07em", marginBottom:4 }}>{s.label}</p>
               <p className={s.mono?"mono":""} style={{ fontSize:16, fontWeight:700, color:s.color, letterSpacing:"-.02em", lineHeight:1 }}>
-                {s.value===null ? <Skeleton className="w-10 h-4"/> : typeof s.value==="number" ? <AnimatedNumber value={s.value}/> : s.value}
+                {s.value===null ? <Skeleton className="w-10 h-4"/> : typeof s.value==="number" ? (
+                  s.label === "Heartbeat age" ? fmtSec(s.value) : <AnimatedNumber value={s.value}/>
+                ) : s.value}
               </p>
             </div>
           ))}
