@@ -20,8 +20,8 @@ export function Skeleton({ className = "" }: { className?: string }) {
 export function FadeUp({ children, delay = 0, className = "" }: { children: ReactNode; delay?: number; className?: string }) {
   return (
     <motion.div className={className}
-      initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: .28, delay, ease: E }}>
+      initial={{ opacity: 0, y: 14, filter: "blur(8px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      transition={{ duration: .42, delay, ease: E }}>
       {children}
     </motion.div>
   );
@@ -30,8 +30,8 @@ export function FadeUp({ children, delay = 0, className = "" }: { children: Reac
 export function PageTransition({ children }: { children: ReactNode }) {
   return (
     <motion.div
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      transition={{ duration: .2 }}>
+      initial={{ opacity: 0, y: 8, scale: .985 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: .99 }}
+      transition={{ duration: .28, ease: E }}>
       {children}
     </motion.div>
   );
@@ -40,7 +40,7 @@ export function PageTransition({ children }: { children: ReactNode }) {
 export function Stagger({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
     <motion.div className={className}
-      initial="h" animate="s" variants={{ h:{}, s:{ transition:{ staggerChildren:.04 } } }}>
+      initial="h" animate="s" variants={{ h:{}, s:{ transition:{ staggerChildren:.06 } } }}>
       {children}
     </motion.div>
   );
@@ -48,7 +48,7 @@ export function Stagger({ children, className = "" }: { children: ReactNode; cla
 export function SI({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
     <motion.div className={className}
-      variants={{ h:{ opacity:0, y:10 }, s:{ opacity:1, y:0, transition:{ duration:.26, ease:E } } }}>
+      variants={{ h:{ opacity:0, y:14, filter:"blur(8px)" }, s:{ opacity:1, y:0, filter:"blur(0px)", transition:{ duration:.34, ease:E } } }}>
       {children}
     </motion.div>
   );
@@ -59,7 +59,7 @@ export function PresenceFade({ show, children }: { show: boolean; children: Reac
     <AnimatePresence>
       {show && (
         <motion.div initial={{ opacity:0, height:0 }} animate={{ opacity:1, height:"auto" }}
-          exit={{ opacity:0, height:0 }} transition={{ duration:.2 }} style={{ overflow:"hidden" }}>
+          exit={{ opacity:0, height:0 }} transition={{ duration:.26, ease:E }} style={{ overflow:"hidden" }}>
           {children}
         </motion.div>
       )}

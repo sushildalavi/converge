@@ -51,22 +51,22 @@ export function CommandPalette({ open, onClose }: { open:boolean; onClose:()=>vo
       {open && (
         <>
           <motion.div className="fixed inset-0 z-50"
-            style={{ background:"rgba(0,0,0,.65)" }}
+            style={{ background:"rgba(4,7,11,.72)", backdropFilter:"blur(8px)" }}
             initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
             transition={{duration:.15}} onClick={onClose} />
 
           <motion.div className="fixed z-50"
-            style={{ top:"18%", left:"50%", width:480, maxWidth:"calc(100vw - 32px)",
-              background:"var(--card)", border:"1px solid var(--border2)",
-              borderRadius:8, boxShadow:"0 24px 48px rgba(0,0,0,.8)",
-              overflow:"hidden", x:"-50%" }}
-            initial={{opacity:0,y:-10,scale:.97}}
+            style={{ top:"16%", left:"50%", width:520, maxWidth:"calc(100vw - 32px)",
+              background:"linear-gradient(180deg, rgba(12,18,28,.98), rgba(9,13,21,.96))", border:"1px solid var(--border2)",
+              borderRadius:20, boxShadow:"0 30px 90px rgba(0,0,0,.7)",
+              overflow:"hidden", x:"-50%", backdropFilter:"blur(18px) saturate(120%)" }}
+            initial={{opacity:0,y:-14,scale:.965}}
             animate={{opacity:1,y:0,scale:1}}
-            exit={{opacity:0,y:-6,scale:.98}}
+            exit={{opacity:0,y:-8,scale:.98}}
             transition={{duration:.18,ease:[0.22,0.6,0.36,1]}}>
 
             <div style={{ display:"flex", alignItems:"center", gap:10, padding:"12px 16px",
-              borderBottom:"1px solid var(--border)" }}>
+              borderBottom:"1px solid rgba(102,224,210,.12)" }}>
               <input ref={ref} value={q} onChange={e=>setQ(e.target.value)}
                 placeholder="Search pages and actions…"
                 style={{ flex:1, background:"transparent", border:"none", outline:"none",
@@ -83,11 +83,12 @@ export function CommandPalette({ open, onClose }: { open:boolean; onClose:()=>vo
                 <div key={item.id}
                   style={{
                     display:"flex", alignItems:"center", gap:12, padding:"9px 16px",
-                    cursor:"pointer", background: i===sel?"var(--raised)":"transparent",
-                    transition:"background .08s",
+                    cursor:"pointer", background: i===sel?"rgba(74,215,202,.08)":"transparent",
+                    transition:"background .12s, transform .12s",
                   }}
                   onClick={item.action}
-                  onMouseEnter={()=>setSel(i)}>
+                  onMouseEnter={()=>setSel(i)}
+                  onMouseLeave={()=>setSel(i)}>
                   <span style={{ color:"var(--dim)", flexShrink:0 }}>{item.icon}</span>
                   <div style={{ flex:1, minWidth:0 }}>
                     <p style={{ fontSize:13, fontWeight:500, color:"var(--text)" }}>{item.label}</p>
