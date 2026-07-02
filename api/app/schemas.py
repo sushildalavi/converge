@@ -16,6 +16,26 @@ class EventCreate(BaseModel):
     payload: dict[str, Any] = Field(default_factory=dict)
     metadata: dict[str, Any] = Field(default_factory=dict)
     max_attempts: int = 4
+    agent_run_id: str | None = None
+    step_id: str | None = None
+    parent_step_id: str | None = None
+    tool_name: str | None = None
+    model_name: str | None = None
+    provider_name: str | None = None
+    prompt_hash: str | None = None
+    system_prompt_hash: str | None = None
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    retry_reason: str | None = None
+    trace_status: str | None = None
+    evaluation_status: str | None = None
+    replay_confidence: float | None = None
+    original_output_hash: str | None = None
+    replayed_output_hash: str | None = None
+    tool_call_args_hash: str | None = None
+    tool_call_result_hash: str | None = None
+    structured_output_valid: bool | None = None
+    failure_category: str | None = None
 
 
 class EventAttemptOut(BaseModel):
@@ -44,6 +64,26 @@ class EventOut(BaseModel):
     status: str
     payload_json: dict[str, Any] = Field(default_factory=dict)
     metadata_json: dict[str, Any] = Field(default_factory=dict)
+    agent_run_id: str | None = None
+    step_id: str | None = None
+    parent_step_id: str | None = None
+    tool_name: str | None = None
+    model_name: str | None = None
+    provider_name: str | None = None
+    prompt_hash: str | None = None
+    system_prompt_hash: str | None = None
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    retry_reason: str | None = None
+    trace_status: str | None = None
+    evaluation_status: str | None = None
+    replay_confidence: float | None = None
+    original_output_hash: str | None = None
+    replayed_output_hash: str | None = None
+    tool_call_args_hash: str | None = None
+    tool_call_result_hash: str | None = None
+    structured_output_valid: bool | None = None
+    failure_category: str | None = None
     attempt_count: int
     max_attempts: int
     next_retry_at: datetime | None = None
@@ -184,3 +224,98 @@ class IncidentSummaryOut(BaseModel):
     summary_text: str
     model_name: str | None = None
     created_at: datetime
+
+
+class AgentStepOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    agent_run_id: uuid.UUID
+    step_id: str
+    parent_step_id: str | None = None
+    tool_name: str | None = None
+    model_name: str | None = None
+    provider_name: str | None = None
+    prompt_hash: str | None = None
+    system_prompt_hash: str | None = None
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    retry_reason: str | None = None
+    trace_status: str
+    evaluation_status: str
+    replay_confidence: float
+    original_output_hash: str | None = None
+    replayed_output_hash: str | None = None
+    tool_call_args_hash: str | None = None
+    tool_call_result_hash: str | None = None
+    structured_output_valid: bool
+    failure_category: str | None = None
+    created_at: datetime
+
+
+class EvalResultOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    agent_run_id: uuid.UUID
+    evaluator_name: str
+    evaluator_kind: str
+    verdict: str
+    score: float
+    details_json: dict[str, Any] = Field(default_factory=dict)
+    compared_against: str | None = None
+    created_at: datetime
+
+
+class TraceComparisonOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    agent_run_id: uuid.UUID
+    original_run_id: str
+    replayed_run_id: str
+    tool_sequence_diff_json: dict[str, Any] = Field(default_factory=dict)
+    output_hash_diff_json: dict[str, Any] = Field(default_factory=dict)
+    evaluator_verdict_diff_json: dict[str, Any] = Field(default_factory=dict)
+    replay_confidence: float
+    failure_category_summary_json: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime
+
+
+class AgentRunOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    agent_run_id: str
+    workflow_id: str
+    run_kind: str
+    provider_name: str | None = None
+    model_name: str | None = None
+    prompt_hash: str | None = None
+    system_prompt_hash: str | None = None
+    trace_status: str
+    evaluation_status: str
+    replay_confidence: float
+    failure_category: str | None = None
+    original_output_hash: str | None = None
+    replayed_output_hash: str | None = None
+    created_at: datetime
+    updated_at: datetime
+    steps: list[AgentStepOut] = Field(default_factory=list)
+    eval_results: list[EvalResultOut] = Field(default_factory=list)
+    trace_comparisons: list[TraceComparisonOut] = Field(default_factory=list)
+
+
+class EventOutboxOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    event_id: uuid.UUID
+    destination: str
+    stream_name: str
+    payload_json: dict[str, Any] = Field(default_factory=dict)
+    status: str
+    attempts: int
+    last_error: str | None = None
+    created_at: datetime
+    published_at: datetime | None = None
