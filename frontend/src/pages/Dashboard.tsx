@@ -137,7 +137,7 @@ export default function Dashboard() {
       <FadeUp>
         <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between" }}>
           <div>
-            <h1 style={{ fontSize:17, fontWeight:600, color:"var(--text)", letterSpacing:"-.02em" }}>Recovery Console</h1>
+            <h1 style={{ fontSize:17, fontWeight:600, color:"var(--text)", letterSpacing:"-.02em" }}>AI Operations Console</h1>
             {m && (
               <p className="mono" style={{ fontSize:11, color:"var(--dim)", marginTop:4 }}>
                 <span style={{color:"var(--muted)"}}><AnimatedNumber value={m.total_events}/></span> events

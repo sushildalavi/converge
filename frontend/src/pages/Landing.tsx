@@ -83,11 +83,11 @@ export default function Landing() {
         <FadeUp>
           <div className="hero-badge">
             <ShieldCheck size={12} />
-            Crash-safe workflow recovery for distributed systems
+            AI workflow recovery and agent-execution reliability
           </div>
           <div className="hero-grid">
             <div className="hero-copy">
-              <h1>Replay failed workflows until the system converges.</h1>
+              <h1>Replay failed agent workflows until the system converges.</h1>
               <p className="hero-subtitle">
                 Converge follows events from Redis Streams into Go workers and PostgreSQL claims, then proves
                 whether recovery actually converged. It shows retries, DLQ replay, worker heartbeats,
@@ -96,11 +96,11 @@ export default function Landing() {
 
               <div className="hero-actions">
                 <Link className="btn-amber hero-cta" to="/app">
-                  Open Recovery Console
+                  Open AI Console
                   <ArrowRight size={13} />
                 </Link>
-                <Link className="btn-outline hero-cta" to="/app/chaos">
-                  Run Chaos Demo
+                <Link className="btn-outline hero-cta" to="/app/benchmarks">
+                  Open Benchmark Explorer
                   <ArrowDownRight size={13} />
                 </Link>
                 <a className="hero-link" href="https://github.com/sushildalavi/converge" target="_blank" rel="noreferrer">
@@ -122,7 +122,7 @@ export default function Landing() {
 
             <div className="hero-console">
               <div className="hero-console-header">
-                <p className="eyebrow">Guided chaos-test demo</p>
+                <p className="eyebrow">Guided AI-ops demo</p>
                 <p className="hero-console-title">What the operator sees</p>
               </div>
               <div className="hero-demo-grid">
@@ -265,7 +265,7 @@ export default function Landing() {
           <p className="footer-copy">Recovery Intelligence & Crash-Safe Replay Platform</p>
         </div>
         <div className="footer-links">
-          <Link to="/app">Recovery Console</Link>
+          <Link to="/app">AI Console</Link>
           <Link to="/app/chaos">Chaos Results</Link>
           <Link to="/app/convergence">Convergence</Link>
           <a href="https://github.com/sushildalavi/converge" target="_blank" rel="noreferrer">GitHub</a>
