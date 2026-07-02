@@ -31,6 +31,26 @@ export interface EventOut {
   status: EventStatus;
   payload_json: Record<string, unknown>;
   metadata_json: Record<string, unknown>;
+  agent_run_id: string | null;
+  step_id: string | null;
+  parent_step_id: string | null;
+  tool_name: string | null;
+  model_name: string | null;
+  provider_name: string | null;
+  prompt_hash: string | null;
+  system_prompt_hash: string | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  retry_reason: string | null;
+  trace_status: string | null;
+  evaluation_status: string | null;
+  replay_confidence: number | null;
+  original_output_hash: string | null;
+  replayed_output_hash: string | null;
+  tool_call_args_hash: string | null;
+  tool_call_result_hash: string | null;
+  structured_output_valid: boolean | null;
+  failure_category: string | null;
   attempt_count: number;
   max_attempts: number;
   next_retry_at: string | null;
@@ -163,6 +183,83 @@ export interface IncidentSummaryOut {
   summary_text: string;
   model_name: string | null;
   created_at: string;
+}
+
+export interface AgentStepOut {
+  id: string;
+  agent_run_id: string;
+  step_id: string;
+  parent_step_id: string | null;
+  tool_name: string | null;
+  model_name: string | null;
+  provider_name: string | null;
+  prompt_hash: string | null;
+  system_prompt_hash: string | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  retry_reason: string | null;
+  trace_status: string;
+  evaluation_status: string;
+  replay_confidence: number;
+  original_output_hash: string | null;
+  replayed_output_hash: string | null;
+  tool_call_args_hash: string | null;
+  tool_call_result_hash: string | null;
+  structured_output_valid: boolean;
+  failure_category: string | null;
+  created_at: string;
+}
+
+export interface EvalResultOut {
+  id: string;
+  agent_run_id: string;
+  evaluator_name: string;
+  evaluator_kind: string;
+  verdict: string;
+  score: number;
+  details_json: Record<string, unknown>;
+  compared_against: string | null;
+  created_at: string;
+}
+
+export interface TraceComparisonOut {
+  id: string;
+  agent_run_id: string;
+  original_run_id: string;
+  replayed_run_id: string;
+  tool_sequence_diff_json: Record<string, unknown>;
+  output_hash_diff_json: Record<string, unknown>;
+  evaluator_verdict_diff_json: Record<string, unknown>;
+  replay_confidence: number;
+  failure_category_summary_json: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface AgentRunOut {
+  id: string;
+  agent_run_id: string;
+  workflow_id: string;
+  run_kind: string;
+  provider_name: string | null;
+  model_name: string | null;
+  prompt_hash: string | null;
+  system_prompt_hash: string | null;
+  trace_status: string;
+  evaluation_status: string;
+  replay_confidence: number;
+  failure_category: string | null;
+  original_output_hash: string | null;
+  replayed_output_hash: string | null;
+  created_at: string;
+  updated_at: string;
+  steps: AgentStepOut[];
+  eval_results: EvalResultOut[];
+  trace_comparisons: TraceComparisonOut[];
+}
+
+export interface AIProviderStatus {
+  provider: string;
+  mode: string;
 }
 
 export interface RecoveryTimelineEntry {
