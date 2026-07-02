@@ -1,220 +1,63 @@
-# Converge — Operations Runbook
+# Converge Runbook
 
-Quick reference for running Converge in development and production.
+## Local endpoints
 
----
+- Frontend: `http://localhost:5171`
+- API: `http://127.0.0.1:8101`
+- API docs: `http://127.0.0.1:8101/docs`
+- Health: `http://127.0.0.1:8101/health`
 
-## Local development
+## Start the stack
 
 ```bash
-docker compose up -d                          # everything (3 workers)
+docker compose up --build -d
 docker compose ps
-docker compose logs -f go-worker              # tail all worker replicas
-docker compose logs -f backend
 ```
 
-Open **http://localhost:5173** for the dashboard.
-The API listens on **http://127.0.0.1:18000** when started via compose.
-
----
-
-## Scaling workers
-
-The worker service is **horizontally scalable** out of the box. Each replica
-auto-derives a unique name from its container hostname (`go-<hostname>`),
-so they all join the same Redis Streams consumer group and split work.
-
-### Set replica count
-```bash
-# Edit docker-compose.yml → services.go-worker.deploy.replicas
-docker compose up -d --scale go-worker=5
-```
-
-### Verify
-```bash
-curl -s http://127.0.0.1:18000/api/workers | jq '.[] | {name: .worker_name, status, hb: .last_heartbeat_at}'
-```
-
-You should see N rows, one per replica, all heartbeating.
-
----
-
-## Health probes
-
-| Endpoint | Use | Behavior |
-|----------|-----|----------|
-| `GET /health/live` | Liveness — orchestrator restart decision | Always 200 if process up |
-| `GET /health/ready` | Readiness — load balancer routing | 200 if Postgres + Redis reachable, else 503 with detail |
-| `GET /health` | Legacy alias for `/health/live` | 200 |
-| `GET /api/convergence` | Convergence verification snapshot | Reports pending, backlog, DLQ, duplicates, and orphaned claims |
-
-### Example
-```bash
-curl -s http://127.0.0.1:18000/health/ready | jq
-curl -s http://127.0.0.1:18000/health/backend | jq
-curl -s http://127.0.0.1:18000/health/backend/stats | jq
-curl -s http://127.0.0.1:18000/api/convergence | jq
-```
-
-```json
-{
-  "status": "ok",
-  "checks": {
-    "postgres": {"status": "ok", "latency_ms": 1.2},
-    "redis":    {"status": "ok", "latency_ms": 0.8}
-  },
-  "env": "development"
-}
-```
-
----
-
-## Production deployment
+## Quick checks
 
 ```bash
-# Apply the prod overlay (more replicas, higher resource limits, nginx serving frontend)
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-
-# Inspect computed config
-docker compose -f docker-compose.yml -f docker-compose.prod.yml config
+curl -fsS http://127.0.0.1:8101/health
+curl -fsS http://127.0.0.1:8101/health/ready
+curl -fsS http://127.0.0.1:8101/api/convergence | jq
+curl -fsS http://127.0.0.1:8101/api/metrics | jq
+curl -fsS http://127.0.0.1:8101/api/ai/providers/status | jq
 ```
 
-**What changes in prod:**
-- `ENVIRONMENT=production` (disables `/docs` and `/redoc`)
-- Frontend served via nginx static (no Vite dev server)
-- 2 backend replicas, 5 worker replicas
-- Higher CPU/memory limits
-- JSON-structured logs
+## AI trace flow
 
-For real cloud deploys, point `DATABASE_URL`/`REDIS_URL` at managed services
-(Neon, RDS, Upstash, ElastiCache) and run only `backend` + `worker` containers.
+1. Seed synthetic AI workloads from the console or API.
+2. Inspect `/app/ai-runs` for agent runs and confidence.
+3. Open `/app/ai-runs/:agentRunId` for prompt/tool JSON.
+4. Open `/app/ai-runs/:agentRunId/compare` for trace diffs.
+5. Review `/app/ai-evals` for evaluator output.
 
----
+## Recovery flow
 
-## Backup / restore
-
-### Backup (gzipped pg_dump)
-```bash
-./scripts/backup-db.sh                  # → ./backups/replayforge-<UTC>.sql.gz
-./scripts/backup-db.sh /tmp/dumps       # custom dir
-```
-
-### Restore
-```bash
-./scripts/restore-db.sh ./backups/replayforge-20260505T100000Z.sql.gz
-```
-
-> **Production:** schedule `backup-db.sh` via cron / GitHub Actions / Cloud
-> Scheduler. Off-site copies → S3/GCS via lifecycle policies.
-
----
-
-## Observability
-
-### Structured JSON logs
-With `LOG_FORMAT=json`, every log line is one JSON object with:
-- `ts`, `level`, `logger`, `message`
-- `request_id` (correlation ID set per HTTP request)
-- `service`, `env`, `worker` (when applicable)
-- Any structured `extra=` fields from the application
+1. Check `/app/streams` for backlog and pending entries.
+2. Check `/app/replay` for DLQ items.
+3. Replay the DLQ item.
+4. Verify `/app/convergence` reports drained state.
+5. If Redis publish failed after DB commit, call:
 
 ```bash
-docker compose logs backend | jq 'select(.level=="ERROR")'
-docker compose logs backend | jq 'select(.path=="/api/events")' | head
+curl -X POST http://127.0.0.1:8101/api/events/outbox/recover
 ```
 
-### Request correlation
-Every HTTP response includes `X-Request-ID` and `X-Response-Time-Ms`.
-Pass `X-Request-ID` from clients to trace requests end-to-end.
-
-### Forwarding to a log aggregator
-Pipe stdout via your container runtime to:
-- **Datadog** (`docker logs` driver)
-- **Loki / Grafana** (Promtail)
-- **Cloud Logging / CloudWatch** (managed)
-
-### Redis 7.4 warning
-The worker logs may show a `maintnotifications` handshake warning from Redis 7.4. It is visible during startup and reconnects but does not block event processing. Verify the stack by checking:
+## Benchmark flow
 
 ```bash
-curl -fsS http://127.0.0.1:18000/health
-curl -fsS http://127.0.0.1:18000/health/ready
-curl -fsS http://127.0.0.1:18000/api/convergence | jq
+python scripts/benchmark_replay.py --events 1000 --workers 2 --mode generic
+python scripts/benchmark_replay.py --events 1000 --workers 2 --mode ai-agent --eval-enabled --trace-comparison-enabled
+python scripts/chaos_replay.py --events 10 --workers 2 --kill-delay 2
 ```
 
----
+Artifacts are written to `benchmarks/` as timestamped `.json` and `.md` files.
 
-## Common runbook entries
+## Interview-safe claims
 
-### "Backend `/health/ready` returns 503"
-```bash
-docker compose logs backend | jq 'select(.message | startswith("http request"))' | tail -5
-docker compose exec postgres pg_isready
-docker compose exec redis redis-cli ping
-```
-Restart the failing dep, or fail over to a replica.
+- The platform has a real outbox recovery path.
+- The platform has real AI trace and eval storage.
+- The checked-in artifacts prove a 1000-event replay and a smaller chaos run.
+- The repo does not currently prove a 100K replay or 3,000+ events/sec run.
 
-### "Workers all crashed"
-```bash
-docker compose ps go-worker
-docker compose logs go-worker --tail=50 | jq 'select(.level=="ERROR")'
-docker compose restart go-worker
-```
-Each worker auto-reclaims orphaned PEL entries via `XAUTOCLAIM` on startup,
-so up to 60s of in-flight work will be re-processed.
-
-### "Dead letter queue growing"
-```bash
-curl -s http://127.0.0.1:18000/api/deadletters | jq 'length'
-curl -s http://127.0.0.1:18000/api/insights/errors | jq
-curl -s http://127.0.0.1:18000/api/convergence | jq '.convergence_issues'
-```
-Investigate top error types. Replay one at a time:
-```bash
-DLQ_ID=$(curl -s http://127.0.0.1:18000/api/deadletters | jq -r '.[0].id')
-curl -X POST http://127.0.0.1:18000/api/deadletters/$DLQ_ID/replay
-```
-
-### "Stream backlog growing (events queued not draining)"
-```bash
-docker compose exec redis redis-cli XLEN events:incoming
-docker compose exec redis redis-cli XINFO GROUPS events:incoming
-curl -s http://127.0.0.1:18000/api/convergence | jq
-```
-- Scale workers: `docker compose up -d --scale go-worker=N`
-- Check workers are alive: `curl http://127.0.0.1:18000/api/workers`
-- Check `XAUTOCLAIM` isn't stuck on a poison message
-
----
-
-## Tunable configuration (env vars)
-
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `MAX_ATTEMPTS` | 4 | Retries before dead-letter |
-| `WORKER_HEARTBEAT_INTERVAL` | 5s | Heartbeat write cadence |
-| `WORKER_STALE_THRESHOLD` | 30s | Stale detection window |
-| `WORKER_XREADGROUP_BLOCK_MS` | 5000 | XREADGROUP wait time |
-| `WORKER_XREADGROUP_COUNT` | 10 | Messages per batch |
-| `DB_POOL_SIZE` | 5 | SQLAlchemy pool size |
-| `DB_MAX_OVERFLOW` | 10 | Pool overflow |
-| `DB_POOL_RECYCLE` | 300 | Connection recycle (Neon-friendly) |
-| `LOG_FORMAT` | json | `json` or `text` |
-| `ENVIRONMENT` | development | `production` disables `/docs` |
-
-## Event lifecycle
-
-1. API persists the event and publishes it to `events:incoming`.
-2. Go workers claim the event row in PostgreSQL before acknowledging the stream entry.
-3. On success, the event is marked `succeeded` and replay latency is captured.
-4. On retryable failure, the worker records the attempt, updates `retrying`, and schedules the next delivery in Redis.
-5. On poison or exhausted attempts, the worker writes a dead-letter record and emits a DLQ stream entry.
-6. The replay endpoint can move a dead-lettered event back into the live stream.
-7. `/api/convergence` confirms when there are no in-flight rows, no pending stream entries, and no orphaned worker claims.
-
-## Reliability model
-
-- Delivery is at-least-once.
-- Correctness comes from idempotent state transitions and claim locking.
-- Redis pending-entry recovery handles worker crashes and disconnects.
-- Database writes happen before stream acknowledgements.
