@@ -11,7 +11,7 @@ from uuid import uuid4
 import httpx
 import pytest
 
-BASE = os.getenv("REPLAYFORGE_BASE_URL", "http://127.0.0.1:18000")
+BASE = os.getenv("REPLAYFORGE_BASE_URL", "http://127.0.0.1:8101")
 
 
 @pytest.fixture(scope="module")
