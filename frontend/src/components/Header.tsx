@@ -6,7 +6,7 @@ import { api } from "../api/client";
 import { AnimatedNumber } from "./Animated";
 
 const CRUMBS: Record<string,string> = {
-  "/":"Landing", "/app":"Recovery Console", "/app/workers":"Workers", "/app/streams":"Streams", "/app/replay":"Replay / DLQ", "/app/convergence":"Convergence", "/app/chaos":"Chaos",
+  "/":"Landing", "/app":"AI Console", "/app/workers":"Workers", "/app/streams":"Streams", "/app/replay":"Replay / DLQ", "/app/convergence":"Convergence", "/app/chaos":"Benchmarks", "/app/benchmarks":"Benchmarks", "/app/ai-runs":"Agent Runs", "/app/ai-evals":"AI Evals", "/app/architecture":"Architecture",
   "/deadletters":"Replay / DLQ", "/workers":"Workers",
 };
 

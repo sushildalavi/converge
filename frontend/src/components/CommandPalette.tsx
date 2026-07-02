@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { BarChart2, AlertTriangle, Server, Zap, RefreshCw, Layers3, ShieldCheck, Workflow } from "lucide-react";
+import { BarChart2, AlertTriangle, Server, Zap, RefreshCw, Layers3, ShieldCheck, Workflow, Bot, Cpu, Braces } from "lucide-react";
 import { api } from "../api/client";
 import { toast } from "sonner";
 
@@ -15,14 +15,19 @@ export function CommandPalette({ open, onClose }: { open:boolean; onClose:()=>vo
 
   const items: Item[] = [
     { id:"landing", label:"Landing page",   sub:"Product story and demo flow", icon:<BarChart2 size={13}/>,    action:()=>{ nav("/");onClose() } },
-    { id:"dash",    label:"Recovery Console", sub:"Live metrics and recovery state", icon:<ShieldCheck size={13}/>, action:()=>{ nav("/app");onClose() } },
+    { id:"dash",    label:"AI Console", sub:"Live metrics and recovery state", icon:<ShieldCheck size={13}/>, action:()=>{ nav("/app");onClose() } },
     { id:"workers", label:"Workers",        sub:"Heartbeat monitor",          icon:<Server size={13}/>,        action:()=>{ nav("/app/workers");onClose() } },
     { id:"streams", label:"Stream backlog",  sub:"Pending entries and retry state", icon:<Workflow size={13}/>, action:()=>{ nav("/app/streams");onClose() } },
     { id:"dlq",     label:"Replay / DLQ",    sub:"Review and replay failures", icon:<Layers3 size={13}/>, action:()=>{ nav("/app/replay");onClose() } },
     { id:"conv",    label:"Convergence",     sub:"Recovery verification", icon:<ShieldCheck size={13}/>, action:()=>{ nav("/app/convergence");onClose() } },
-    { id:"chaos",   label:"Chaos results",   sub:"Measured benchmark artifacts", icon:<AlertTriangle size={13}/>, action:()=>{ nav("/app/chaos");onClose() } },
+    { id:"bench",   label:"Benchmarks",   sub:"Measured benchmark artifacts", icon:<AlertTriangle size={13}/>, action:()=>{ nav("/app/benchmarks");onClose() } },
+    { id:"ai-runs", label:"Agent Runs", sub:"AI trace replay and confidence", icon:<Bot size={13}/>, action:()=>{ nav("/app/ai-runs");onClose() } },
+    { id:"ai-evals", label:"AI Evals", sub:"Evaluation results table", icon:<Braces size={13}/>, action:()=>{ nav("/app/ai-evals");onClose() } },
+    { id:"arch", label:"Architecture", sub:"System design and lifecycle", icon:<Cpu size={13}/>, action:()=>{ nav("/app/architecture");onClose() } },
     { id:"gen",     label:"Generate workload", sub:"30 synthetic checkout flows", icon:<Zap size={13}/>,
       action:async()=>{ onClose(); try{ const r=await api.generateWorkload(30); toast.success("Generated",{description:`${r.events_sent} events queued`}) }catch{ toast.error("Failed") } } },
+    { id:"ai-gen",  label:"Seed AI workload", sub:"Deterministic agent traces and evals", icon:<Bot size={13}/>,
+      action:async()=>{ onClose(); try{ const r=await api.generateAIWorkload(4); toast.success("Generated",{description:`${r.agent_runs} AI runs seeded`}) }catch{ toast.error("Failed") } } },
     { id:"reload",  label:"Reload",         sub:"Hard refresh all data",      icon:<RefreshCw size={13}/>,     action:()=>window.location.reload() },
   ];
 
