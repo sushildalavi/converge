@@ -13,11 +13,11 @@ from typing import Any
 import httpx
 
 
-DEFAULT_BASE_URL = os.getenv("FORGELOG_URL", "http://127.0.0.1:9090")
+DEFAULT_BASE_URL = os.getenv("EVENT_BACKEND_URL", "http://127.0.0.1:9090")
 
 
 @dataclass(frozen=True)
-class ForgeLogBenchmark:
+class EventBackendBenchmark:
     status: str
     events: int
     append_p50_ms: float | None
@@ -38,7 +38,7 @@ class ForgeLogBenchmark:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Benchmark the ForgeLog append/read path.")
+    parser = argparse.ArgumentParser(description="Benchmark the event backend append/read path.")
     parser.add_argument("--events", type=int, default=1000)
     parser.add_argument("--base-url", default=DEFAULT_BASE_URL)
     parser.add_argument("--output-dir", default="benchmarks")
@@ -59,7 +59,7 @@ def _command_line(args: argparse.Namespace) -> str:
 
 
 def _pending_artifact(args: argparse.Namespace, note: str) -> dict[str, Any]:
-    return ForgeLogBenchmark(
+    return EventBackendBenchmark(
         status="pending",
         events=args.events,
         append_p50_ms=None,
@@ -98,8 +98,8 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any] | None:
             for _ in range(args.events):
                 payload = {
                     "event_id": uuid.uuid4().hex,
-                    "workflow_id": f"forgelog-{uuid.uuid4().hex[:8]}",
-                    "event_type": "forgelog.benchmark",
+                    "workflow_id": f"event-backend-{uuid.uuid4().hex[:8]}",
+                    "event_type": "event-backend.benchmark",
                     "service_name": "benchmark",
                     "payload": {"kind": "benchmark"},
                 }
@@ -134,14 +134,14 @@ def run_benchmark(args: argparse.Namespace) -> dict[str, Any] | None:
                 "recovery_time_seconds": None,
             }
     except Exception as exc:
-        return {"status": "pending", "note": f"ForgeLog benchmark unavailable: {exc}"}
+        return {"status": "pending", "note": f"event backend benchmark unavailable: {exc}"}
 
 
 def main() -> None:
     args = build_parser().parse_args()
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    name = args.artifact_name or f"forgelog_benchmark_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
+    name = args.artifact_name or f"event_backend_benchmark_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
     json_path = output_dir / f"{name}.json"
 
     if args.dry_run or args.pending:
@@ -149,11 +149,11 @@ def main() -> None:
     else:
         live = run_benchmark(args)
         if live is None:
-            artifact = _pending_artifact(args, f"ForgeLog unavailable at {args.base_url}")
+            artifact = _pending_artifact(args, f"event backend unavailable at {args.base_url}")
         elif live.get("status") != "measured":
-            artifact = _pending_artifact(args, str(live.get("note", "ForgeLog unavailable")))
+            artifact = _pending_artifact(args, str(live.get("note", "event backend unavailable")))
         else:
-            artifact = ForgeLogBenchmark(
+            artifact = EventBackendBenchmark(
                 status="measured",
                 events=args.events,
                 append_p50_ms=live["append_p50_ms"],

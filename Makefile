@@ -1,4 +1,4 @@
-.PHONY: up down chaos load check test-backend test-frontend test-worker test-forgelog ci
+.PHONY: up down chaos load check test-backend test-frontend test-worker test-event-backend ci
 
 up:
 	docker compose up --build -d
@@ -24,7 +24,7 @@ test-frontend:
 test-worker:
 	cd worker && go test ./... && go build ./...
 
-test-forgelog:
+test-event-backend:
 	cd forgelog && go test ./...
 
-ci: test-backend test-frontend test-worker test-forgelog
+ci: test-backend test-frontend test-worker test-event-backend

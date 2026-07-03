@@ -17,7 +17,7 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 TOTAL = int(os.getenv("CHAOS_TOTAL_EVENTS", "100000"))
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://replayforge_cp:replayforge_cp_pwd@localhost:5432/replayforge",
+    "postgresql://converge_cp:converge_cp_pwd@localhost:5432/converge",
 )
 POST_KILL_CONVERGENCE_WAIT_SECONDS = 45
 GROUP = os.getenv("CHAOS_GROUP", REDIS_GROUP)

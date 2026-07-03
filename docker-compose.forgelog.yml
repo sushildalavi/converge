@@ -1,23 +1,23 @@
 services:
-  forgelog:
+  event-backend:
     build:
       context: ./forgelog
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
-      FORGELOG_ADDR: :9090
-      FORGELOG_DATA_DIR: /var/lib/forgelog
+      EVENT_BACKEND_ADDR: :9090
+      EVENT_BACKEND_DATA_DIR: /var/lib/event-backend
     ports:
       - "9090:9090"
     volumes:
-      - forgelog-data:/var/lib/forgelog
+      - event-backend-data:/var/lib/event-backend
 
   control-plane:
     environment:
-      EVENT_BACKEND: forgelog
-      FORGELOG_URL: http://forgelog:9090
+      EVENT_BACKEND: event-backend
+      EVENT_BACKEND_URL: http://event-backend:9090
     depends_on:
-      - forgelog
+      - event-backend
 
 volumes:
-  forgelog-data:
+  event-backend-data:

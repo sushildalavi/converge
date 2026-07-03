@@ -3,15 +3,15 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: replayforge_cp
-      POSTGRES_PASSWORD: replayforge_cp_pwd
-      POSTGRES_DB: replayforge
+      POSTGRES_USER: converge_cp
+      POSTGRES_PASSWORD: converge_cp_pwd
+      POSTGRES_DB: converge
     ports:
       - "15432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U replayforge_cp -d replayforge"]
+      test: ["CMD-SHELL", "pg_isready -U converge_cp -d converge"]
       interval: 2s
       timeout: 5s
       retries: 10
@@ -31,7 +31,7 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://replayforge_cp:replayforge_cp_pwd@postgres:5432/replayforge
+      DATABASE_URL: postgresql://converge_cp:converge_cp_pwd@postgres:5432/converge
       REDIS_URL: redis://redis:6379/0
     depends_on:
       - postgres
@@ -44,7 +44,7 @@ services:
       context: ./worker
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://replayforge_cp:replayforge_cp_pwd@postgres:5432/replayforge
+      DATABASE_URL: postgresql://converge_cp:converge_cp_pwd@postgres:5432/converge
       REDIS_ADDR: redis:6379
     depends_on:
       postgres:

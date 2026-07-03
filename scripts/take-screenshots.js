@@ -153,7 +153,7 @@ COMMIT;
 `;
 
   execSync(
-    `docker compose exec -T postgres psql -U replayforge_cp -d replayforge -v ON_ERROR_STOP=1 <<'SQL'\n${sql}\nSQL`,
+    `docker compose exec -T postgres psql -U converge_cp -d converge -v ON_ERROR_STOP=1 <<'SQL'\n${sql}\nSQL`,
     { stdio: 'inherit', cwd: path.resolve(__dirname, '..') }
   );
 }
@@ -172,7 +172,7 @@ SET
 WHERE worker_name IN ('go-worker-a', 'go-worker-b', 'go-worker-c', 'go-worker-drained');
 `;
   execSync(
-    `docker compose exec -T postgres psql -U replayforge_cp -d replayforge -v ON_ERROR_STOP=1 -c "${sql.replace(/\n/g, ' ')}"`,
+    `docker compose exec -T postgres psql -U converge_cp -d converge -v ON_ERROR_STOP=1 -c "${sql.replace(/\n/g, ' ')}"`,
     { stdio: 'inherit', cwd: path.resolve(__dirname, '..') }
   );
 }
