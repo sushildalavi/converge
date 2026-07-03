@@ -21,6 +21,7 @@ export default function AgentRuns() {
   const latest = runs?.[0];
   const avgConfidence = runs && runs.length > 0 ? runs.reduce((sum, run) => sum + run.replay_confidence, 0) / runs.length : null;
   const providerLabel = provider?.model ? `${provider.provider} / ${provider.model}` : provider?.provider ?? "fake";
+  const providerSource = provider?.source ?? "local";
 
   const seed = async () => {
     try {
@@ -83,7 +84,7 @@ export default function AgentRuns() {
             <p className="panel-copy">Step hashes, tool names, replay confidence, and trace status.</p>
           </div>
           <span className="panel-chip">
-            <Bot size={11} /> {providerLabel}
+            <Bot size={11} /> {providerLabel} · {providerSource}
           </span>
         </div>
 
