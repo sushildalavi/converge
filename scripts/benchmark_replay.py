@@ -296,65 +296,12 @@ async def run_benchmark(args: argparse.Namespace) -> dict[str, Any] | None:
     }
 
 
-def _render_markdown(artifact: dict[str, Any]) -> str:
-    lines = [
-        "# Converge Benchmark",
-        "",
-        f"- status: {artifact['status']}",
-        f"- events: {artifact['events']}",
-        f"- workers: {artifact['workers']}",
-        f"- concurrency: {artifact['concurrency']}",
-        f"- base url: {artifact['base_url']}",
-        "",
-    ]
-    if artifact["status"] != "measured":
-        lines.append("Results are pending local execution.")
-        return "\n".join(lines)
-
-    lines.extend(
-        [
-            "## Results",
-            "",
-            f"- mode: {artifact['mode']}",
-            f"- submitted: {artifact['submitted']}",
-            f"- completed: {artifact['completed']}",
-            f"- failed: {artifact['failed']}",
-            f"- dead letters: {artifact['dead_letters']}",
-            f"- retries: {artifact['retries']}",
-            f"- pending entries: {artifact['pending_entries']}",
-            f"- stream backlog: {artifact['stream_backlog']}",
-            f"- orphaned records: {artifact['orphaned_records']}",
-            f"- duplicate deliveries: {artifact['duplicate_deliveries']}",
-            f"- duplicate side effects: {artifact['duplicate_side_effects']}",
-            f"- convergence state: {artifact['convergence_state']}",
-            f"- converged: {artifact['converged']}",
-            f"- ingest throughput events/sec: {artifact['ingest_throughput_events_per_sec']}",
-            f"- processing throughput events/sec: {artifact['processing_throughput_events_per_sec']}",
-            f"- end-to-end throughput events/sec: {artifact['end_to_end_throughput_events_per_sec']}",
-            f"- recovery time seconds: {artifact['recovery_time_seconds']}",
-            f"- p50 e2e ms: {artifact['p50_e2e_ms']}",
-            f"- p95 e2e ms: {artifact['p95_e2e_ms']}",
-            f"- p99 e2e ms: {artifact['p99_e2e_ms']}",
-            f"- eval enabled: {artifact['eval_enabled']}",
-            f"- trace comparison enabled: {artifact['trace_comparison_enabled']}",
-            f"- AI eval pass rate: {artifact['ai_eval_pass_rate']}",
-            f"- replay confidence p50: {artifact['replay_confidence_p50']}",
-            f"- replay confidence p95: {artifact['replay_confidence_p95']}",
-            f"- redis stream batch size: {artifact['redis_stream_batch_size']}",
-            f"- db pool size: {artifact['db_pool_size']}",
-            f"- payload size: {artifact['payload_size']}",
-        ]
-    )
-    return "\n".join(lines)
-
-
 def main() -> None:
     args = build_parser().parse_args()
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     artifact_name = args.artifact_name or f"benchmark_replay_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
     json_path = output_dir / f"{artifact_name}.json"
-    md_path = output_dir / f"{artifact_name}.md"
 
     if args.dry_run or args.pending:
         artifact = _pending_artifact(args, "pending benchmark requested")
@@ -404,9 +351,7 @@ def main() -> None:
             ).to_dict()
 
     json_path.write_text(json.dumps(artifact, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    md_path.write_text(_render_markdown(artifact), encoding="utf-8")
     print(json_path)
-    print(md_path)
 
 
 if __name__ == "__main__":
