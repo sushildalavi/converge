@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"os"
 
-	"converge/forgelog/internal/logstore"
-	"converge/forgelog/internal/server"
+	"converge/event_backend/internal/logstore"
+	"converge/event_backend/internal/server"
 )
 
 func getenv(key, fallback string) string {

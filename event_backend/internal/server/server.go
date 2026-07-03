@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"converge/forgelog/internal/logstore"
+	"converge/event_backend/internal/logstore"
 )
 
 type Handler struct {

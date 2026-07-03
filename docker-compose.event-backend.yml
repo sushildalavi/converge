@@ -1,7 +1,7 @@
 services:
   event-backend:
     build:
-      context: ./forgelog
+      context: ./event_backend
       dockerfile: Dockerfile
     restart: unless-stopped
     environment:

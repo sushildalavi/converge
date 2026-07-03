@@ -52,8 +52,8 @@ func New(dir string) (*Store, error) {
 		return nil, err
 	}
 
-	walPath := filepath.Join(dir, "forgelog.wal")
-	checkpointPath := filepath.Join(dir, "forgelog.checkpoint.json")
+	walPath := filepath.Join(dir, "event_backend.wal")
+	checkpointPath := filepath.Join(dir, "event_backend.checkpoint.json")
 
 	wal, err := os.OpenFile(walPath, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0o644)
 	if err != nil {

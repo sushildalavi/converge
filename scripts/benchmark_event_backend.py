@@ -51,7 +51,7 @@ def build_parser() -> argparse.ArgumentParser:
 def _command_line(args: argparse.Namespace) -> str:
     return " ".join(
         [
-            "python scripts/benchmark_forgelog.py",
+            "python scripts/benchmark_event_backend.py",
             f"--events {args.events}",
             f"--base-url {args.base_url}",
         ]
