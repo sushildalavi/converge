@@ -1,36 +1,42 @@
 # Converge
 
-Converge is an AI workflow recovery and agent-execution reliability platform.
+Converge is an AI workflow recovery platform built around a strict control plane and evidence-first replay flow.
 
-It is built to prove that long-running AI workflows can be replayed, compared, evaluated, and recovered without hiding the failure modes that matter: DB commit vs Redis publish gaps, duplicate side effects, pending-entry recovery, DLQ replay, and trace drift.
+Target architecture:
 
-## What it does
+- FastAPI control API
+- Redis Streams event queue
+- Go replay workers
+- PostgreSQL claim locking and idempotency state
+- Supabase-backed trace and recovery storage
+- React dashboard deployed on Vercel
+- OpenAI and Gemini judge layer for recovery comparison
 
-- Accepts generic workflow events and AI-agent step traces
-- Persists event + outbox rows in PostgreSQL
-- Publishes to Redis Streams, with recovery for unpublished rows
-- Processes work in a Go worker pool with database-before-ack ordering
-- Tracks agent runs, tool calls, replay confidence, failure category, and evaluator verdicts
-- Generates deterministic local evals and optional external judge calls when keys exist
-- Replays DLQ items and compares original vs replayed trace output
-- Exposes recovery, benchmark, chaos, and AI eval evidence in a production-style console
+## What It Proves
+
+- Events are ingested through FastAPI and written with idempotency protection.
+- Outbox rows close the DB-commit / Redis-publish gap.
+- Go workers claim stream entries, process them, and ack only after database state is committed.
+- Trace, eval, and comparison records are persisted in PostgreSQL, which can be pointed at Supabase in production.
+- Recovery evidence is surfaced in the React dashboard and benchmark artifacts.
+- External judge providers are optional; deterministic local judges remain the default when keys are absent.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-  A[Client / AI agent] --> B[FastAPI control plane]
-  B --> C[(PostgreSQL)]
-  B --> D[(Event outbox)]
-  D --> E[Redis Streams]
-  E --> F[Go worker pool]
+  A[Client / AI agent] --> B[FastAPI control API]
+  B --> C[(PostgreSQL / Supabase)]
+  B --> D[(Transactional outbox)]
+  D --> E[Redis Streams queue]
+  E --> F[Go replay workers]
   F --> C
   G[Recovery scanner] --> D
-  H[AI eval engine] --> C
-  I[React AI ops console] --> B
+  H[OpenAI / Gemini judge layer] --> C
+  I[React dashboard on Vercel] --> B
 ```
 
-## Local preview
+## Local Setup
 
 ```bash
 docker compose up --build -d
@@ -39,39 +45,57 @@ docker compose up --build -d
 Ports:
 
 - API: `http://127.0.0.1:8101`
-- Frontend: `http://localhost:5171`
 - API docs: `http://127.0.0.1:8101/docs`
 - Health: `http://127.0.0.1:8101/health`
+- Frontend: `http://localhost:5171`
 
-## Console routes
+## Environment
+
+Backend:
+
+- `DATABASE_URL` points to PostgreSQL or Supabase Postgres
+- `REDIS_URL` points to Redis Streams
+- `JUDGE_PROVIDER` defaults to `auto`
+- `OPENAI_API_KEY` enables the OpenAI judge provider
+- `GEMINI_API_KEY` enables the Gemini judge provider
+- `OPENAI_JUDGE_MODEL` defaults to `gpt-4o-mini`
+- `GEMINI_JUDGE_MODEL` defaults to `gemini-1.5-flash`
+
+Frontend:
+
+- `VITE_API_BASE_URL` should be set on Vercel for production
+- leave `VITE_API_BASE_URL` blank for local proxying
+- `frontend/vercel.json` rewrites client routes to `index.html`
+
+## Console Routes
 
 - `/` landing page
-- `/app` AI operations console
-- `/app/workers` worker health and heartbeats
+- `/app` recovery console
+- `/app/workers` worker health and claim state
 - `/app/streams` Redis backlog and retry pressure
 - `/app/replay` DLQ inspection and replay
 - `/app/convergence` convergence verification
 - `/app/benchmarks` benchmark explorer
 - `/app/ai-runs` agent run dashboard
-- `/app/ai-runs/:agentRunId` prompt and tool trace viewer
+- `/app/ai-runs/:agentRunId` trace viewer
 - `/app/ai-runs/:agentRunId/compare` trace comparison
-- `/app/ai-evals` AI eval results table
-- `/app/architecture` system architecture page
+- `/app/ai-evals` eval results
+- `/app/architecture` system architecture
 
-## Current checked-in proof
+## Checked-In Evidence
 
-The repository keeps benchmark and chaos JSON/Markdown artifacts under `benchmarks/`.
+The repo keeps machine-readable benchmark and chaos artifacts under `benchmarks/` as JSON only.
 
 | Artifact | Status | Submitted | DLQ | Pending after recovery | Recovery time | Throughput |
 | --- | --- | ---: | ---: | ---: | ---: | ---: |
 | `benchmarks/benchmark_replay_20260702T213707Z.json` | converged | 1000 | 0 | 0 | 9.10s | 109.57 events/sec |
 | `benchmarks/chaos_replay_20260701T223433Z.json` | converged | 10 | 0 | 0 | 3.82s | 2.62 events/sec |
 
-These are the checked-in artifacts the UI references today. If you run newer benchmarks, the repo will keep the newer JSON/Markdown outputs alongside the existing ones.
+The UI reads these JSON artifacts directly. Markdown benchmark/postmortem outputs have been removed from the repository.
 
-## AI workflow model
+## AI Workflow Model
 
-Key trace fields carried through the API and database:
+Relevant trace and evaluation fields:
 
 - `agent_run_id`
 - `step_id`
@@ -94,40 +118,27 @@ Key trace fields carried through the API and database:
 - `structured_output_valid`
 - `failure_category`
 
-## Recovery lifecycle
+## Recovery Lifecycle
 
-1. Event or AI step is accepted by the API.
-2. Event and outbox rows are written in PostgreSQL.
-3. The API publishes to Redis Streams.
-4. If Redis publish fails after commit, the outbox row stays recoverable.
-5. The worker claims the stream message, writes attempt state, then acknowledges the stream.
-6. Pending entries are reclaimed by the worker janitor.
-7. DLQ rows can be replayed.
-8. Convergence is reported only when the database, Redis, and worker state all drain cleanly.
+1. The API accepts a workflow event or AI step.
+2. The event and outbox row are written in PostgreSQL in one transaction.
+3. Redis Streams receives the event, or the outbox recovery path republishes it later.
+4. Go workers claim the stream message and write claim / attempt state to the database.
+5. Pending entries are reclaimed by the worker janitor.
+6. DLQ items can be replayed by an operator.
+7. Trace comparison and judge-backed evaluation run against original and replayed outputs.
+8. Convergence is reported only when database, Redis, and worker state are clean.
 
-## Eval lifecycle
+## Judge Lifecycle
 
-The local evaluation path is deterministic by default:
-
-- exact-match evaluator
-- JSON-schema evaluator
-- deterministic rubric evaluator
-- deterministic fake LLM judge
-- optional OpenAI judge if `OPENAI_API_KEY` exists
-- optional Gemini judge if `GEMINI_API_KEY` exists
-
-The AI console surfaces:
-
-- original vs replayed trace comparison
-- tool-sequence diff
-- output-hash diff
-- evaluator verdict diff
-- replay confidence score
-- failure category summary
+- Deterministic exact-match, schema, rubric, and fake-LLM judges are available locally.
+- OpenAI and Gemini judges are enabled only when their API keys are present.
+- The provider endpoint reports the active provider, model, and whether the source is local or external.
+- The dashboard shows provider fallback and trace comparison output alongside the replay confidence score.
 
 ## Commands
 
-### Backend
+Backend:
 
 ```bash
 pytest -q api/app/tests/test_ai_ops.py
@@ -135,27 +146,27 @@ pytest -q api/app/tests/test_event_ingestion.py api/app/tests/test_replay.py api
 python -m compileall api/app scripts
 ```
 
-### Frontend
+Frontend:
 
 ```bash
 cd frontend
 npm run build
 ```
 
-### Go worker
+Go worker:
 
 ```bash
 cd worker
 go test ./...
 ```
 
-### Compose sanity
+Compose validation:
 
 ```bash
 docker compose config
 ```
 
-### Benchmark and chaos
+Benchmark and chaos:
 
 ```bash
 python scripts/benchmark_replay.py --events 1000 --workers 2 --mode generic
@@ -163,29 +174,11 @@ python scripts/benchmark_replay.py --events 1000 --workers 2 --mode ai-agent --e
 python scripts/chaos_replay.py --events 10 --workers 2 --kill-delay 2
 ```
 
-The benchmark scripts now support:
+Generated benchmark and postmortem commands now emit JSON artifacts only.
 
-- `--mode generic|ai-agent`
-- `--events`
-- `--workers`
-- `--concurrency`
-- `--payload-size`
-- `--redis-stream-batch-size`
-- `--db-pool-size`
-- `--eval-enabled`
-- `--trace-comparison-enabled`
+## Notes
 
-## Resume-safe claims
-
-- The repo has a real AI agent trace model and eval layer.
-- The repo has an outbox recovery path for publish failures after DB commit.
-- The repo has checked-in benchmark and chaos artifacts.
-- The frontend now includes AI run, trace comparison, eval, and architecture screens.
-- The current checked-in artifacts are smaller than the aspirational 100K / 3,000+ targets.
-
-## Caveats
-
-- The codebase still contains some legacy package and database identifiers for compatibility.
-- The checked-in artifacts do not yet prove a 100K replay or 3,000+ events/sec run.
-- Use the generated JSON/Markdown artifacts as the source of truth for interview claims.
-
+- Legacy markdown documentation has been removed everywhere except this README.
+- The repo still supports local Docker Compose development.
+- Supabase is the intended managed Postgres target for production trace and recovery state.
+- Vercel is the intended deployment target for the React dashboard.
