@@ -11,6 +11,7 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.models import AgentRun, AgentStep, EvalResult, Event, EventOutbox, TraceComparison
 
 
@@ -99,6 +100,7 @@ def deterministic_fake_llm_judge(prompt: str, response: str, rubric: str = "") -
 
 class JudgeProvider:
     name: str
+    model_name: str | None = None
 
     def evaluate(self, prompt: str, response: str, rubric: str = "") -> dict[str, Any]:
         raise NotImplementedError
@@ -117,6 +119,7 @@ class OpenAIJudgeProvider(JudgeProvider):
     def __init__(self, api_key: str, model: str = "gpt-4o-mini") -> None:
         self.api_key = api_key
         self.model = model
+        self.model_name = model
 
     def evaluate(self, prompt: str, response: str, rubric: str = "") -> dict[str, Any]:
         import httpx
@@ -145,6 +148,7 @@ class GeminiJudgeProvider(JudgeProvider):
     def __init__(self, api_key: str, model: str = "gemini-1.5-flash") -> None:
         self.api_key = api_key
         self.model = model
+        self.model_name = model
 
     def evaluate(self, prompt: str, response: str, rubric: str = "") -> dict[str, Any]:
         import httpx
@@ -178,19 +182,29 @@ def select_judge_provider(
     *,
     openai_api_key: str | None = None,
     gemini_api_key: str | None = None,
+    openai_model: str | None = None,
+    gemini_model: str | None = None,
 ) -> JudgeProvider:
+    provider_name = (provider_name or os.getenv("JUDGE_PROVIDER", settings.judge_provider)).strip().lower()
+    if provider_name == "auto":
+        provider_name = ""
+    openai_api_key = (openai_api_key or os.getenv("OPENAI_API_KEY", "")).strip() or None
+    gemini_api_key = (gemini_api_key or os.getenv("GEMINI_API_KEY", "")).strip() or None
+    openai_model = (openai_model or os.getenv("OPENAI_JUDGE_MODEL", settings.openai_judge_model)).strip()
+    gemini_model = (gemini_model or os.getenv("GEMINI_JUDGE_MODEL", settings.gemini_judge_model)).strip()
+
     if provider_name == "openai" and openai_api_key:
-        return OpenAIJudgeProvider(openai_api_key)
+        return OpenAIJudgeProvider(openai_api_key, model=openai_model)
     if provider_name == "gemini" and gemini_api_key:
-        return GeminiJudgeProvider(gemini_api_key)
+        return GeminiJudgeProvider(gemini_api_key, model=gemini_model)
     if provider_name == "openai" and not openai_api_key:
         return FakeJudgeProvider()
     if provider_name == "gemini" and not gemini_api_key:
         return FakeJudgeProvider()
     if openai_api_key:
-        return OpenAIJudgeProvider(openai_api_key)
+        return OpenAIJudgeProvider(openai_api_key, model=openai_model)
     if gemini_api_key:
-        return GeminiJudgeProvider(gemini_api_key)
+        return GeminiJudgeProvider(gemini_api_key, model=gemini_model)
     return FakeJudgeProvider()
 
 
@@ -387,4 +401,3 @@ def failure_category_summary(steps: list[dict[str, Any]]) -> dict[str, int]:
         category = step.get("failure_category") or "none"
         summary[category] = summary.get(category, 0) + 1
     return summary
-

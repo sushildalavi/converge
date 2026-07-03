@@ -92,4 +92,9 @@ def get_trace_comparison(agent_run_id: str, db: DbDep) -> TraceComparisonOut:
 @router.get("/api/ai/providers/status")
 def provider_status() -> dict[str, Any]:
     provider = select_judge_provider()
-    return {"provider": provider.name, "mode": "deterministic" if provider.name == "fake" else "external"}
+    return {
+        "provider": provider.name,
+        "model": getattr(provider, "model_name", None),
+        "mode": "deterministic" if provider.name == "fake" else "external",
+        "source": "environment" if provider.name != "fake" else "local",
+    }

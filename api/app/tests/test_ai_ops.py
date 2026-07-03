@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -42,6 +43,14 @@ def test_trace_comparison_and_provider_fallback():
     assert comparison["replay_confidence"] < 1.0
     assert comparison["tool_sequence_diff_json"]["added"] == ["llm.summarize"]
     assert provider.name == "fake"
+
+
+def test_select_judge_provider_uses_environment_model_override():
+    with patch.dict(os.environ, {"JUDGE_PROVIDER": "openai", "OPENAI_API_KEY": "test-key", "OPENAI_JUDGE_MODEL": "gpt-4.1-mini"}, clear=False):
+        provider = select_judge_provider()
+
+    assert provider.name == "openai"
+    assert provider.model_name == "gpt-4.1-mini"
 
 
 def test_failed_publish_creates_recoverable_outbox_row(db):
