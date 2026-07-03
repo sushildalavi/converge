@@ -252,61 +252,12 @@ async def run_chaos(args: argparse.Namespace) -> dict[str, Any] | None:
     }
 
 
-def _render_markdown(artifact: dict[str, Any]) -> str:
-    lines = [
-        "# Converge Chaos Replay",
-        "",
-        f"- status: {artifact['status']}",
-        f"- events: {artifact['events']}",
-        f"- workers: {artifact['workers']}",
-        f"- concurrency: {artifact['concurrency']}",
-        f"- kill delay seconds: {artifact['kill_delay_seconds']}",
-        f"- restart delay seconds: {artifact['restart_delay_seconds']}",
-        f"- base url: {artifact['base_url']}",
-        "",
-    ]
-    if artifact["status"] != "measured":
-        lines.append("Results are pending local execution.")
-        return "\n".join(lines)
-
-    lines.extend(
-        [
-            "## Results",
-            "",
-            f"- killed worker id: {artifact['killed_worker_id']}",
-            f"- submitted: {artifact['submitted']}",
-            f"- completed: {artifact['completed']}",
-            f"- failed: {artifact['failed']}",
-            f"- dead letters: {artifact['dead_letters']}",
-            f"- retries: {artifact['retries']}",
-            f"- pending before recovery: {artifact['pending_before_recovery']}",
-            f"- pending after recovery: {artifact['pending_after_recovery']}",
-            f"- backlog before recovery: {artifact['stream_backlog_before_recovery']}",
-            f"- backlog after recovery: {artifact['stream_backlog_after_recovery']}",
-            f"- orphaned records: {artifact['orphaned_records']}",
-            f"- duplicate deliveries: {artifact['duplicate_deliveries']}",
-            f"- duplicate side effects: {artifact['duplicate_side_effects']}",
-            f"- convergence before: {artifact['convergence_state_before']}",
-            f"- convergence after: {artifact['convergence_state_after']}",
-            f"- converged: {artifact['converged']}",
-            f"- recovery time seconds: {artifact['recovery_time_seconds']}",
-            f"- ingest throughput events/sec: {artifact['ingest_throughput_events_per_sec']}",
-            f"- end-to-end throughput events/sec: {artifact['end_to_end_throughput_events_per_sec']}",
-            f"- p50 e2e ms: {artifact['p50_e2e_ms']}",
-            f"- p95 e2e ms: {artifact['p95_e2e_ms']}",
-            f"- p99 e2e ms: {artifact['p99_e2e_ms']}",
-        ]
-    )
-    return "\n".join(lines)
-
-
 def main() -> None:
     args = build_parser().parse_args()
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     artifact_name = args.artifact_name or f"chaos_replay_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
     json_path = output_dir / f"{artifact_name}.json"
-    md_path = output_dir / f"{artifact_name}.md"
 
     if args.dry_run or args.pending:
         artifact = _pending_artifact(args, "pending chaos run requested")
@@ -352,9 +303,7 @@ def main() -> None:
             ).to_dict()
 
     json_path.write_text(json.dumps(artifact, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    md_path.write_text(_render_markdown(artifact), encoding="utf-8")
     print(json_path)
-    print(md_path)
 
 
 if __name__ == "__main__":
