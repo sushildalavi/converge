@@ -143,7 +143,6 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     name = args.artifact_name or f"forgelog_benchmark_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
     json_path = output_dir / f"{name}.json"
-    md_path = output_dir / f"{name}.md"
 
     if args.dry_run or args.pending:
         artifact = _pending_artifact(args, "pending benchmark requested")
@@ -171,30 +170,7 @@ def main() -> None:
             ).to_dict()
 
     json_path.write_text(json.dumps(artifact, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    md_path.write_text(
-        "\n".join(
-            [
-                "# ForgeLog Benchmark",
-                "",
-                f"- status: {artifact['status']}",
-                f"- events: {artifact['events']}",
-                f"- base url: {artifact['base_url']}",
-                f"- append p50 ms: {artifact.get('append_p50_ms')}",
-                f"- append p95 ms: {artifact.get('append_p95_ms')}",
-                f"- append throughput events/sec: {artifact.get('append_throughput_events_per_sec')}",
-                f"- read throughput events/sec: {artifact.get('read_throughput_events_per_sec')}",
-                f"- wal size bytes: {artifact.get('wal_size_bytes')}",
-                f"- last offset: {artifact.get('last_offset')}",
-                f"- committed offset: {artifact.get('committed_offset')}",
-                f"- recovery time seconds: {artifact.get('recovery_time_seconds')}",
-                f"- note: {artifact.get('note')}",
-                "",
-            ]
-        ),
-        encoding="utf-8",
-    )
     print(json_path)
-    print(md_path)
 
 
 if __name__ == "__main__":
