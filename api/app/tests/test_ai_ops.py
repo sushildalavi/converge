@@ -53,6 +53,20 @@ def test_select_judge_provider_uses_environment_model_override():
     assert provider.model_name == "gpt-4.1-mini"
 
 
+def test_provider_status_endpoint_reports_model_and_source(db):
+    with patch.dict(os.environ, {"JUDGE_PROVIDER": "gemini", "GEMINI_API_KEY": "test-key", "GEMINI_JUDGE_MODEL": "gemini-2.0-flash"}, clear=False):
+        client = _client(db)
+        response = client.get("/api/ai/providers/status")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "provider": "gemini",
+        "model": "gemini-2.0-flash",
+        "mode": "external",
+        "source": "environment",
+    }
+
+
 def test_failed_publish_creates_recoverable_outbox_row(db):
     payload = {
         "application_name": "demo",
