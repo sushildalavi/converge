@@ -52,16 +52,18 @@ export const measuredArtifacts: MeasuredArtifact[] = [
 ];
 
 export const lifecycleSteps = [
-  "Event ingest",
+  "FastAPI ingest",
   "Redis Streams",
   "Go worker",
   "PostgreSQL claim",
+  "Supabase trace store",
   "Process",
   "Ack",
   "Retry / DLQ",
   "Trace compare",
   "AI eval",
   "Replay",
+  "Vercel dashboard",
   "Convergence check",
 ];
 
@@ -108,9 +110,10 @@ export const architectureNodes = [
   "FastAPI control plane",
   "Redis Streams",
   "Go workers",
-  "PostgreSQL",
-  "React console",
-  "Docker Compose",
+  "PostgreSQL / Supabase",
+  "Supabase trace storage",
+  "OpenAI + Gemini judges",
+  "React console on Vercel",
 ];
 
 export const appRoutes = [

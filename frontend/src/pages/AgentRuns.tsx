@@ -20,6 +20,7 @@ export default function AgentRuns() {
 
   const latest = runs?.[0];
   const avgConfidence = runs && runs.length > 0 ? runs.reduce((sum, run) => sum + run.replay_confidence, 0) / runs.length : null;
+  const providerLabel = provider?.model ? `${provider.provider} / ${provider.model}` : provider?.provider ?? "fake";
 
   const seed = async () => {
     try {
@@ -58,12 +59,12 @@ export default function AgentRuns() {
       </FadeUp>
 
       <Stagger className="metric-grid metric-grid-4">
-        {[
-          { label: "Runs", value: runs?.length ?? null, color: "var(--text)" },
-          { label: "Latest confidence", value: latest ? latest.replay_confidence * 100 : null, color: "var(--cyan)" },
-          { label: "Eval status", value: latest?.evaluation_status ?? null, color: verdictColor(latest?.evaluation_status ?? "warn") },
-          { label: "Provider", value: provider?.provider ?? "fake", color: "var(--violet)" },
-        ].map((item) => (
+          {[
+            { label: "Runs", value: runs?.length ?? null, color: "var(--text)" },
+            { label: "Latest confidence", value: latest ? latest.replay_confidence * 100 : null, color: "var(--cyan)" },
+            { label: "Eval status", value: latest?.evaluation_status ?? null, color: verdictColor(latest?.evaluation_status ?? "warn") },
+            { label: "Provider", value: providerLabel, color: "var(--violet)" },
+          ].map((item) => (
           <SI key={item.label}>
             <div className="stat-card">
               <p className="stat-label">{item.label}</p>
@@ -82,7 +83,7 @@ export default function AgentRuns() {
             <p className="panel-copy">Step hashes, tool names, replay confidence, and trace status.</p>
           </div>
           <span className="panel-chip">
-            <Bot size={11} /> {provider?.provider ?? "fake"}
+            <Bot size={11} /> {providerLabel}
           </span>
         </div>
 

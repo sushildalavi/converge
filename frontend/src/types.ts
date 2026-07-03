@@ -260,6 +260,8 @@ export interface AgentRunOut {
 export interface AIProviderStatus {
   provider: string;
   mode: string;
+  model?: string | null;
+  source?: string | null;
 }
 
 export interface RecoveryTimelineEntry {
