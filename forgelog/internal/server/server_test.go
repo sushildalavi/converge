@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"replayforge/forgelog/internal/logstore"
+	"converge/forgelog/internal/logstore"
 )
 
 func TestHealthStatsAndAppend(t *testing.T) {

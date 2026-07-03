@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     # ── core ─────────────────────────────────────────────
-    database_url: str = "postgresql://replayforge_cp:replayforge_cp_pwd@127.0.0.1:15432/replayforge"
+    database_url: str = "postgresql://converge_cp:converge_cp_pwd@127.0.0.1:15432/converge"
     redis_url: str = "redis://127.0.0.1:16379/0"
 
     # ── worker ───────────────────────────────────────────
@@ -47,8 +47,8 @@ class Settings(BaseSettings):
     # ── http ─────────────────────────────────────────────
     cors_origins: str = "http://localhost:5171"
     request_timeout_seconds: int = 30
-    event_backend: str = "redis"  # "redis" or "forgelog"
-    forgelog_url: str = "http://forgelog:9090"
+    event_backend: str = "redis"  # "redis" or "event-backend"
+    event_backend_url: str = "http://event-backend:9090"
 
     # ── security ─────────────────────────────────────────
     # Comma-separated list of allowed API keys for write endpoints
@@ -92,7 +92,7 @@ class Settings(BaseSettings):
     @property
     def normalized_event_backend(self) -> str:
         backend = self.event_backend.strip().lower()
-        return backend if backend in {"redis", "forgelog"} else "redis"
+        return backend if backend in {"redis", "event-backend"} else "redis"
 
 
 @lru_cache

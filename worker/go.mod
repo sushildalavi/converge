@@ -1,4 +1,4 @@
-module replayforge/worker
+module converge/worker
 
 go 1.23.0
 

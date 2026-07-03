@@ -22,7 +22,7 @@ def _timestamp(iso_value) -> str | None:
     return iso_value.isoformat()
 
 
-def _forgelog_payload(event: Event, payload: EventCreate) -> dict[str, Any]:
+def _event_backend_payload(event: Event, payload: EventCreate) -> dict[str, Any]:
     return {
         "event_id": str(event.id),
         "application_name": payload.application_name,
@@ -38,22 +38,22 @@ def _forgelog_payload(event: Event, payload: EventCreate) -> dict[str, Any]:
         "created_at": _timestamp(event.created_at),
         "updated_at": _timestamp(event.updated_at),
         "source": "converge-api",
-        "backend": "forgelog",
+        "backend": "event-backend",
     }
 
 
 def append_event_to_backend(event: Event, payload: EventCreate) -> dict[str, Any]:
     backend = settings.normalized_event_backend
-    if backend == "forgelog":
-        url = settings.forgelog_url.rstrip("/")
-        body = _forgelog_payload(event, payload)
+    if backend == "event-backend":
+        url = settings.event_backend_url.rstrip("/")
+        body = _event_backend_payload(event, payload)
         try:
             with httpx.Client(timeout=5.0) as client:
                 response = client.post(f"{url}/append", json=body)
                 response.raise_for_status()
                 return response.json()
         except Exception:
-            log.exception("failed to append event %s to ForgeLog", event.id)
+            log.exception("failed to append event %s to event backend", event.id)
             raise
 
     publish_incoming(str(event.id))
@@ -62,31 +62,31 @@ def append_event_to_backend(event: Event, payload: EventCreate) -> dict[str, Any
 
 def backend_health() -> dict[str, Any]:
     backend = settings.normalized_event_backend
-    if backend == "forgelog":
-        url = settings.forgelog_url.rstrip("/")
+    if backend == "event-backend":
+        url = settings.event_backend_url.rstrip("/")
         try:
             with httpx.Client(timeout=5.0) as client:
                 response = client.get(f"{url}/health")
                 response.raise_for_status()
                 return response.json()
         except Exception as exc:
-            log.exception("ForgeLog health check failed")
-            return {"status": "down", "backend": "forgelog", "error": str(exc)}
+            log.exception("event backend health check failed")
+            return {"status": "down", "backend": "event-backend", "error": str(exc)}
 
     return {"status": "ok", "backend": "redis"}
 
 
 def backend_stats() -> dict[str, Any]:
     backend = settings.normalized_event_backend
-    if backend == "forgelog":
-        url = settings.forgelog_url.rstrip("/")
+    if backend == "event-backend":
+        url = settings.event_backend_url.rstrip("/")
         try:
             with httpx.Client(timeout=5.0) as client:
                 response = client.get(f"{url}/stats")
                 response.raise_for_status()
                 return response.json()
         except Exception as exc:
-            log.exception("ForgeLog stats request failed")
-            return {"status": "down", "backend": "forgelog", "error": str(exc)}
+            log.exception("event backend stats request failed")
+            return {"status": "down", "backend": "event-backend", "error": str(exc)}
 
     return {"status": "ok", "backend": "redis", "stream": STREAM_INCOMING}

@@ -17,8 +17,8 @@ def _test_database_url() -> str:
         return explicit
 
     base = settings.database_url
-    if base.endswith("/replayforge"):
-        return base.rsplit("/", 1)[0] + "/replayforge_test"
+    if base.endswith("/converge"):
+        return base.rsplit("/", 1)[0] + "/converge_test"
     return base + "_test"
 
 def _admin_database_url() -> str:

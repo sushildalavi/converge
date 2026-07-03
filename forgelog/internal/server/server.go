@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"replayforge/forgelog/internal/logstore"
+	"converge/forgelog/internal/logstore"
 )
 
 type Handler struct {
@@ -106,7 +106,7 @@ func (h *Handler) handleHealth(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"status":  "ok",
-		"backend": "forgelog",
+		"backend": "event-backend",
 		"stats":   stats,
 	})
 }

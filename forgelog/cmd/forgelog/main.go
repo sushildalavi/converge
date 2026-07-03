@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"os"
 
-	"replayforge/forgelog/internal/logstore"
-	"replayforge/forgelog/internal/server"
+	"converge/forgelog/internal/logstore"
+	"converge/forgelog/internal/server"
 )
 
 func getenv(key, fallback string) string {
@@ -17,17 +17,17 @@ func getenv(key, fallback string) string {
 }
 
 func main() {
-	dataDir := getenv("FORGELOG_DATA_DIR", "/var/lib/forgelog")
-	addr := getenv("FORGELOG_ADDR", ":9090")
+	dataDir := getenv("EVENT_BACKEND_DATA_DIR", "/var/lib/event-backend")
+	addr := getenv("EVENT_BACKEND_ADDR", ":9090")
 
 	store, err := logstore.New(dataDir)
 	if err != nil {
-		log.Fatalf("forgelog init failed: %v", err)
+		log.Fatalf("event backend init failed: %v", err)
 	}
 	defer store.Close()
 
-	log.Printf("forgelog starting on %s with data dir %s", addr, dataDir)
+	log.Printf("event backend starting on %s with data dir %s", addr, dataDir)
 	if err := http.ListenAndServe(addr, server.New(store)); err != nil {
-		log.Fatalf("forgelog exited: %v", err)
+		log.Fatalf("event backend exited: %v", err)
 	}
 }

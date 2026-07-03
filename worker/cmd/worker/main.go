@@ -24,8 +24,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 
-	"replayforge/worker/pkg/recovery"
-	"replayforge/worker/pkg/streams"
+	"converge/worker/pkg/recovery"
+	"converge/worker/pkg/streams"
 )
 
 const (
@@ -33,7 +33,7 @@ const (
 	streamRetry              = "events:retry"
 	streamDeadLetter         = "events:deadletter"
 	retryZset                = "events:retry:zset"
-	consumerGroup            = "replayforge-workers"
+	consumerGroup            = "converge-workers"
 	processingStaleThreshold = 60 * time.Second
 	staleWorkerGCThreshold   = 5 * time.Minute
 )
@@ -95,7 +95,7 @@ func newUUID() string {
 
 func newApplication(ctx context.Context) (*application, error) {
 	redisAddr := getenv("REDIS_ADDR", "localhost:6379")
-	dsn := getenv("DATABASE_URL", "postgresql://replayforge_cp:replayforge_cp_pwd@127.0.0.1:15432/replayforge")
+	dsn := getenv("DATABASE_URL", "postgresql://converge_cp:converge_cp_pwd@127.0.0.1:15432/converge")
 
 	rdb := redis.NewClient(&redis.Options{Addr: redisAddr})
 	if err := rdb.Ping(ctx).Err(); err != nil {

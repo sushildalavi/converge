@@ -15,7 +15,7 @@ STREAM_INCOMING = "events:incoming"
 STREAM_RETRY = "events:retry"
 STREAM_DLQ = "events:deadletter"
 RETRY_ZSET = "events:retry:zset"
-GROUP = "replayforge-workers"
+GROUP = "converge-workers"
 
 _client: Redis | None = None
 
