@@ -9,8 +9,10 @@ import type {
   MetricsOut, WorkerOut, WorkflowSummaryOut, WorkflowTimelineOut,
 } from "../types";
 
+const baseURL = import.meta.env.VITE_API_BASE_URL?.trim() ?? "";
+
 const http = axios.create({
-  baseURL: "",
+  baseURL,
   timeout: 15_000,
   headers: { "Content-Type": "application/json" },
 });
