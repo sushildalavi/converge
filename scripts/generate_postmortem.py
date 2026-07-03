@@ -87,81 +87,17 @@ def run_postmortem(args: argparse.Namespace) -> RecoveryPostmortemOut:
     return generate_recovery_postmortem(None, request)
 
 
-def render_markdown(report: RecoveryPostmortemOut, *, artifact: str, workflow_id: str | None = None, base_url: str | None = None) -> str:
-    lines = [
-        "# Recovery Postmortem",
-        "",
-        f"- generated at: {datetime.now(timezone.utc).isoformat()}",
-        f"- artifact: {artifact}",
-        f"- workflow id: {workflow_id or 'n/a'}",
-        f"- base url: {base_url or 'n/a'}",
-        f"- recovery result: {report.recovery_result}",
-        f"- confidence: {report.confidence:.2f}",
-        "",
-        "## Incident Summary",
-        report.incident_summary,
-        "",
-        "## Timeline",
-    ]
-    for item in report.timeline:
-        lines.append(f"- {item.event}: {item.impact}")
-    lines.extend(
-        [
-            "",
-            "## Evidence",
-        ]
-    )
-    for item in report.evidence:
-        lines.append(f"- {item}")
-    lines.extend(
-        [
-            "",
-            "## Risks",
-        ]
-    )
-    for item in report.risks:
-        lines.append(f"- {item}")
-    lines.extend(
-        [
-            "",
-            "## Recommended Actions",
-        ]
-    )
-    for item in report.recommended_actions:
-        lines.append(f"- {item}")
-    lines.extend(
-        [
-            "",
-            "## Resume Safety",
-            report.resume_safe_summary,
-            "",
-        ]
-    )
-    return "\n".join(lines)
-
-
 def main() -> None:
     args = build_parser().parse_args()
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     artifact_name = args.artifact_name or f"recovery_postmortem_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
     json_path = output_dir / f"{artifact_name}.json"
-    md_path = output_dir / f"{artifact_name}.md"
 
     report = run_postmortem(args)
     payload = report.model_dump(mode="json")
     json_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    md_path.write_text(
-        render_markdown(
-            report,
-            artifact=", ".join(args.artifact) if args.artifact else "live snapshot",
-            workflow_id=args.workflow_id or None,
-            base_url=args.base_url or None,
-        ),
-        encoding="utf-8",
-    )
     print(json_path)
-    print(md_path)
 
 
 if __name__ == "__main__":
