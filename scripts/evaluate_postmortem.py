@@ -195,29 +195,6 @@ def build_evaluation_summary() -> dict[str, Any]:
     }
 
 
-def _render_markdown(summary: dict[str, Any]) -> str:
-    lines = [
-        "# Recovery Postmortem Evaluation",
-        "",
-        f"- generated at: {summary['generated_at']}",
-        f"- schema valid output rate: {summary['schema_valid_output_rate']}",
-        f"- correct recovery classification rate: {summary['correct_recovery_classification_rate']}",
-        f"- evidence coverage: {summary['evidence_coverage']}",
-        f"- average latency ms: {summary['average_latency_ms']}",
-        f"- insufficient evidence behavior: {summary['insufficient_evidence_behavior']}",
-        "",
-        "## Cases",
-    ]
-    for case in summary["cases"]:
-        lines.extend(
-            [
-                f"- {case['case']}: expected={case['expected']}, actual={case['actual']}, schema_valid={case['schema_valid']}, latency_ms={case['latency_ms']}, coverage={case['evidence_coverage']}",
-            ]
-        )
-    lines.append("")
-    return "\n".join(lines)
-
-
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Evaluate the recovery postmortem generator.")
     parser.add_argument("--output-dir", default="postmortem-evaluations")
@@ -231,13 +208,10 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     artifact_name = args.artifact_name or f"postmortem_eval_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
     json_path = output_dir / f"{artifact_name}.json"
-    md_path = output_dir / f"{artifact_name}.md"
 
     summary = build_evaluation_summary()
     json_path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    md_path.write_text(_render_markdown(summary), encoding="utf-8")
     print(json_path)
-    print(md_path)
 
 
 if __name__ == "__main__":
