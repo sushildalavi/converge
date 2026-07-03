@@ -89,9 +89,9 @@ export default function Landing() {
             <div className="hero-copy">
               <h1>Replay failed agent workflows until the system converges.</h1>
               <p className="hero-subtitle">
-                Converge follows events from Redis Streams into Go workers and PostgreSQL claims, then proves
-                whether recovery actually converged. It shows retries, DLQ replay, worker heartbeats,
-                and benchmark evidence without inflating claims.
+                Converge follows events from FastAPI into Redis Streams, Go workers, and PostgreSQL claim state,
+                then stores trace and recovery evidence in Supabase-backed Postgres before rendering the dashboard on
+                Vercel. It shows retries, DLQ replay, worker heartbeats, and benchmark evidence without inflating claims.
               </p>
 
               <div className="hero-actions">
@@ -134,7 +134,7 @@ export default function Landing() {
                 ))}
               </div>
               <div className="hero-console-footer">
-                <span className="mono">Measured from benchmarks/chaos_replay_20260701T230628Z.json</span>
+                <span className="mono">Measured from benchmarks/benchmark_replay_20260702T213707Z.json</span>
               </div>
             </div>
           </div>

@@ -27,7 +27,7 @@ const TITLES: Record<string, { title: string; subtitle: string }> = {
   "/app/benchmarks": { title: "Benchmark Explorer", subtitle: "Replay throughput, recovery time, and AI eval proof." },
   "/app/ai-runs": { title: "Agent Runs", subtitle: "AI traces, step hashes, and replay confidence." },
   "/app/ai-evals": { title: "AI Evals", subtitle: "Deterministic and judge-backed eval results." },
-  "/app/architecture": { title: "Architecture", subtitle: "Control plane, worker pool, outbox, and trace store." },
+  "/app/architecture": { title: "Architecture", subtitle: "FastAPI, Redis Streams, Go workers, Supabase storage, and Vercel delivery." },
   "/app/workflows/:wfId": { title: "Workflow Timeline", subtitle: "Per-workflow event history, attempts, and incident context." },
 };
 

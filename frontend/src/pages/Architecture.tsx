@@ -4,19 +4,21 @@ const nodes = [
   "FastAPI control plane",
   "Transactional outbox",
   "Redis Streams",
-  "Go worker pool",
-  "AI trace store",
-  "Replay / eval console",
-  "Benchmark / chaos harness",
+  "Go replay workers",
+  "PostgreSQL claim locking",
+  "Supabase-backed trace store",
+  "OpenAI / Gemini judge layer",
+  "React dashboard on Vercel",
 ];
 
 const lifecycle = [
-  "Ingest agent step or generic workflow event",
-  "Persist event + outbox row in one transaction",
-  "Publish to Redis or recover unpublished outbox rows",
+  "Ingest agent step or generic workflow event through FastAPI",
+  "Persist event + outbox row in PostgreSQL in one transaction",
+  "Publish to Redis Streams or recover unpublished outbox rows",
   "Claim work in Go workers with database-before-ack ordering",
-  "Write trace, eval, and comparison artifacts back to Postgres",
-  "Render confidence, DLQ, and convergence evidence in the console",
+  "Write trace, eval, and comparison artifacts to Supabase-backed Postgres",
+  "Compare original vs replayed traces with OpenAI or Gemini judges",
+  "Render confidence, DLQ, and convergence evidence in the Vercel dashboard",
 ];
 
 export default function Architecture() {
@@ -28,7 +30,7 @@ export default function Architecture() {
             <div className="eyebrow">System Architecture</div>
             <h2 className="page-heading">AI workflow recovery platform</h2>
             <p className="page-copy">
-              The stack is organized around trace recovery, replay confidence, and evidence-backed convergence.
+              The stack is organized around trace recovery, replay confidence, Supabase-backed storage, and evidence-backed convergence.
             </p>
           </div>
         </div>
@@ -73,8 +75,8 @@ export default function Architecture() {
             </div>
           </div>
           <div className="stack-list">
-            <div className="note-row">No benchmark claim appears in the UI unless it comes from a checked-in artifact or a freshly generated local run.</div>
-            <div className="note-row">External judges are optional; deterministic fake judges are the default for local tests.</div>
+            <div className="note-row">No benchmark claim appears in the UI unless it comes from a checked-in JSON artifact or a freshly generated local run.</div>
+            <div className="note-row">External judges are optional; deterministic fake judges are the default for local tests and offline runs.</div>
             <div className="note-row">The outbox closes the DB-commit / Redis-publish gap with recovery instead of best-effort logging.</div>
           </div>
         </div>
